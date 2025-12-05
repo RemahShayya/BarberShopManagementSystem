@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="BarberShopManagementSystem.Data/BarberShopManagementSystem.Data.csproj" />
+  <Project Path="BarberShopManagementSystem.Utils/BarberShopManagementSystem.Utils.csproj" />
+  <Project Path="BarberShopManagementSystem/BarberShopManagementSystem.API.csproj" />
+</Solution>
