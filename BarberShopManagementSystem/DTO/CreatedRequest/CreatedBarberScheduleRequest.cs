@@ -1,12 +1,18 @@
-﻿namespace BarberShopManagementSystem.API.DTO.CreatedRequest
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace BarberShopManagementSystem.API.DTO.CreatedRequest
 {
     public class CreatedBarberScheduleRequest
     {
-        public string BarberId { get; set; }
-        public string BarberFirstName { get; set; }
-        public string BarberLastName { get; set; }
-        public DayOfWeek DayOfWeek { get; set; }
-        public TimeSpan StartTime { get; set; }
-        public TimeSpan EndTime { get; set; }
+        [Required]
+        public string Username { get; set; }
+
+        [Required]
+        public DateTime Day { get; set; }
+        public TimeSpan? StartHour { get; set; }
+
+        public TimeSpan? EndHour { get; set; }
+        [Required]
+        public bool IsDayOff { get; set; } = false;
     }
 }

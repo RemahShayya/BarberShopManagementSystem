@@ -1,14 +1,16 @@
-﻿using BarberShopManagementSystem.Data.Entities;
+﻿using Azure.Core;
+using BarberShopManagementSystem.Data.Entities;
 
 namespace BarberShopManagementSystem.API.Services.IServices
 {
     public interface IAppointmentService
     {
+        IQueryable<Appointment> Query();
         Task<IEnumerable<Appointment>> GetAllAppointments();
         Task<Appointment?> GetAppointmentById(Guid id);
         Task<Appointment> AddAppointment(Appointment appointment);
-        void DeleteAppointment(Appointment appointment);
+        void DeleteAppointment(Guid Id);
         bool UpdateAppointment(Appointment appointment);
-        Task SaveAppointment(Appointment appointment);
+        Task SaveAppointment();
     }
 }

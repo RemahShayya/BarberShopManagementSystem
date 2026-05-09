@@ -1,6 +1,7 @@
 ﻿using BarberShopManagementSystem.Data.Entities;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using System;
 using System.Collections.Generic;
 using System.Reflection.Emit;
@@ -17,6 +18,19 @@ namespace BarberShopManagementSystem.Data.Context
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            var utcConverter = new ValueConverter<DateTime, DateTime>(
+        v => v,                       // to DB
+        v => DateTime.SpecifyKind(v, DateTimeKind.Utc) // from DB
+    );
+
+            modelBuilder.Entity<Appointment>()
+                .Property(a => a.StartTime)
+                .HasConversion(utcConverter);
+
+            modelBuilder.Entity<Appointment>()
+                .Property(a => a.EndTime)
+                .HasConversion(utcConverter);
 
             modelBuilder.Entity<User>()
                 .HasMany(u => u.CustomerAppointments)
@@ -60,31 +74,39 @@ namespace BarberShopManagementSystem.Data.Context
             {
                 entity.HasKey(a => a.Id);
 
-                entity.Property(a => a.AppointmentStart)
+                entity.Property(a => a.StartTime)
                       .IsRequired();
 
-                entity.Property(a => a.AppointmentDuration)
+                // Persist EndTime as a regular column. It is computed in application code.
+                entity.Property(a => a.EndTime)
                       .IsRequired();
-
-                // Computed column for end time (optional)
-                entity.Ignore(a => a.AppointmentEndTime);
-
-                // One-to-one Review
-                entity.HasOne(a => a.Review)
-                      .WithOne(r => r.Appointment)
-                      .HasForeignKey<Review>(r => r.AppointmentId)
-                      .OnDelete(DeleteBehavior.Cascade);
             });
 
             // --------------------------
             // Review
             // --------------------------
+
             modelBuilder.Entity<Review>(entity =>
             {
+                entity.HasIndex(r => r.AppointmentId).IsUnique();
                 entity.HasKey(r => r.Id);
 
-                entity.Property(r => r.Rating)
-                      .IsRequired();
+                entity.HasOne(r => r.Appointment)
+                      .WithMany()
+                      .HasForeignKey(r => r.AppointmentId)
+                      .OnDelete(DeleteBehavior.NoAction); // ← add this
+
+                entity.HasOne(r => r.Barber)
+                      .WithMany()
+                      .HasForeignKey(r => r.BarberId)
+                      .OnDelete(DeleteBehavior.NoAction);  // keep as-is
+
+                entity.HasOne(r => r.Customer)
+                      .WithMany()
+                      .HasForeignKey(r => r.CustomerId)
+                      .OnDelete(DeleteBehavior.NoAction);  // keep as-is
+
+                entity.Property(r => r.Rating).IsRequired();
 
                 entity.Property(r => r.Comment)
                       .HasMaxLength(500)
@@ -93,17 +115,7 @@ namespace BarberShopManagementSystem.Data.Context
                 entity.Property(r => r.CreatedAt)
                       .HasDefaultValueSql("GETUTCDATE()");
 
-                entity.HasOne(r => r.Barber)
-                      .WithMany()
-                      .HasForeignKey(r => r.BarberId)
-                      .OnDelete(DeleteBehavior.Restrict);
-
-                entity.HasOne(r => r.Customer)
-                      .WithMany()
-                      .HasForeignKey(r => r.CustomerId)
-                      .OnDelete(DeleteBehavior.Restrict);
             });
-
             // --------------------------
             // BarberSchedule
             // --------------------------
@@ -111,17 +123,58 @@ namespace BarberShopManagementSystem.Data.Context
             {
                 entity.HasKey(bs => bs.Id);
 
-                entity.Property(bs => bs.StartHour)
-                      .IsRequired();
+                entity.Property(bs =>
+                bs.StartHour)
+                      .IsRequired(false);
 
                 entity.Property(bs => bs.EndHour)
-                      .IsRequired();
+                      .IsRequired(false);
 
                 entity.HasOne(bs => bs.Barber)
                       .WithMany()
                       .HasForeignKey(bs => bs.BarberId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
+
+            // --------------------------
+            // ArchivedAppointment
+            // --------------------------
+            modelBuilder.Entity<ArchivedAppointment>(entity =>
+            {
+                entity.HasKey(a => a.Id);
+
+                entity.HasOne(a => a.Customer)
+                      .WithMany()
+                      .HasForeignKey(a => a.CustomerId)
+                      .OnDelete(DeleteBehavior.NoAction);
+
+                entity.HasOne(a => a.Barber)
+                      .WithMany()
+                      .HasForeignKey(a => a.BarberId)
+                      .OnDelete(DeleteBehavior.NoAction);
+            });
+            modelBuilder.Entity<Review>(entity =>
+{
+    entity.HasIndex(r => r.AppointmentId).IsUnique();
+    entity.HasKey(r => r.Id);
+
+    entity.HasOne(r => r.Appointment)
+          .WithMany()
+          .HasForeignKey(r => r.AppointmentId)
+          .OnDelete(DeleteBehavior.NoAction); // ← add this
+
+    entity.HasOne(r => r.Barber)
+             .WithMany()
+          .HasForeignKey(r => r.BarberId)
+          .OnDelete(DeleteBehavior.NoAction);  // keep as-is
+
+    entity.HasOne(r => r.Customer)
+          .WithMany()
+          .HasForeignKey(r => r.CustomerId)
+          .OnDelete(DeleteBehavior.NoAction);  // keep as-is
+
+    // ... rest of config
+});
 
             // Deterministic role seeding: include fixed ConcurrencyStamp values
             modelBuilder.Entity<Role>().HasData(
@@ -156,5 +209,6 @@ namespace BarberShopManagementSystem.Data.Context
         public DbSet<Appointment> Appointments { get; set; }
         public DbSet<Review> Reviews { get; set; }
         public DbSet<BarberSchedule> BarberSchedules { get; set; }
+        public DbSet<ArchivedAppointment> ArchivedAppointments { get; set; }
     }
 }

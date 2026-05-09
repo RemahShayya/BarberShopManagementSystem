@@ -13,6 +13,8 @@
   <ItemGroup>
 	  <PackageReference Include="AutoMapper" Version="12.0.1" />
 	  <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.1" />
+	  <PackageReference Include="Hangfire" Version="1.8.23" />
+	  <PackageReference Include="libphonenumber-csharp" Version="9.0.20" />
 	  <PackageReference Include="Mailjet.Api" Version="3.0.0" />
 	  <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0-rc.2.25502.107" />
@@ -32,5 +34,11 @@
     <ProjectReference Include="..\BarberShopManagementSystem.Data\BarberShopManagementSystem.Data.csproj" />
     <ProjectReference Include="..\BarberShopManagementSystem.Utils\BarberShopManagementSystem.Utils.csproj" />
   </ItemGroup>
+
+	<ItemGroup>
+		<Content Update="nlog.config">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
 
 </Project>

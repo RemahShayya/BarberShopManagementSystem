@@ -1,62 +1,125 @@
-﻿using BarberShopManagementSystem.API.DTO;
+﻿using AutoMapper;
+using BarberShopManagementSystem.API.DTO;
 using BarberShopManagementSystem.API.DTO.CreatedRequest;
 using BarberShopManagementSystem.API.Services;
+using BarberShopManagementSystem.API.Services.IServices;
 using BarberShopManagementSystem.Data.Entities;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
 using System.Text;
+using PhoneNumbers;
 
 namespace BarberShopManagementSystem.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class AccountController : ControllerBase
+    public class EmployeeController : ControllerBase
     {
         private readonly JWTService jwtService;
         private readonly SignInManager<User> signInManager;
         private readonly UserManager<User> userManager;
-        public readonly EmailService emailService;
+        private readonly EmailService emailService;
         private readonly IConfiguration configuration;
+        private readonly IUserService userService;
+        private readonly IMapper mapper;
 
-        public AccountController(JWTService jwtService, SignInManager<User> signInManager, UserManager<User> userManager, EmailService emailService, IConfiguration configuration)
+        public EmployeeController(JWTService jwtService, SignInManager<User> signInManager, UserManager<User> userManager, IConfiguration configuration, IUserService userService, IMapper mapper, EmailService emailService)
         {
             this.jwtService = jwtService;
             this.signInManager = signInManager;
             this.userManager = userManager;
-            this.emailService = emailService;
             this.configuration = configuration;
+            this.userService = userService;
+            this.mapper = mapper;
+            this.emailService = emailService;
         }
 
-        [HttpPost("Login")]
-        public async Task<ActionResult<UserDTO>> login(CreatedLoginRequest request)
+        [HttpGet("get_barber/{username}")]
+        public async Task<ActionResult<UserDTO>> GetBarberById(string username)
         {
-            var user = await userManager.FindByNameAsync(request.Username);
-            if (user == null) return Unauthorized("Invalid Username or Password");
-            if (user.EmailConfirmed == false) return Unauthorized("Please confirm your email!");
-            var result = await signInManager.CheckPasswordSignInAsync(user, request.Password, false);
-            if (!result.Succeeded) return Unauthorized("Invalid Username or Password!");
+            var user = await userManager.FindByNameAsync(username);
+            if (user == null)
+            {
+                return NotFound($"Barber with Username {username} not found");
+            }
 
-            return await CreateApplicationUserDTO(user);
+            var isBarber = await userManager.IsInRoleAsync(user, "Barber");
+            if (!isBarber)
+            {
+                return BadRequest("User is not a barber");
+            }
+
+            var roles = await userManager.GetRolesAsync(user);
+
+            var userDTO = mapper.Map<UserDTO>(user);
+            userDTO.Role = roles.FirstOrDefault(); 
+
+            return Ok(userDTO);
         }
 
-        [HttpPost("Register")]
-        public async Task<IActionResult> Register(CreatedCustomerSignUpRequest request)
+        [HttpGet("get_all_barbers")]
+        public async Task<ActionResult<IEnumerable<UserDTO>>> GetAllEmployees(string? search, [FromQuery] int pageNumber, [FromQuery] int pageSize)
+        {
+            var barbers = await userManager.GetUsersInRoleAsync("Barber");
+            var barbersList = barbers.ToList();
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                barbersList = barbersList
+                    .Where(b => (b.FirstName + " " + b.LastName)
+                        .Contains(search, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+
+            var paginatedBarbers = barbersList
+                .OrderBy(c => c.FirstName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            var userBarberDTO = new List<UserDTO>();
+
+            foreach (var user in paginatedBarbers)
+            {
+                var roles = await userManager.GetRolesAsync(user);
+                var dto = mapper.Map<UserDTO>(user);
+                dto.Role = roles.FirstOrDefault();
+                userBarberDTO.Add(dto);
+            }
+
+            return Ok(userBarberDTO);
+        }
+
+        [HttpPost("Register_Barber")]
+        public async Task<IActionResult> Register(CreatedCustomerAndBarberSignUpRequest request)
         {
             if (await CheckIfEmailExist(request.Email))
                 return Unauthorized($"An existing account is using {request.Email}");
+            if(!IsPhoneValid(request.CountryCode, request.PhoneNumber))
+                return BadRequest("Invalid phone number");
+
+            TimeZoneInfo timeZone;
+            try
+            {
+                timeZone = TimeZoneInfo.FindSystemTimeZoneById(request.TimeZoneId);
+            }
+            catch
+            {
+                return BadRequest("Invalid timezone ID");
+            }
 
             var addedUser = new User
             {
                 FirstName = request.Firstname.Trim(),
                 LastName = request.Lastname.Trim(),
                 Email = request.Email.ToLower(),
-                UserName = request.Email.ToLower(),
-                DateCreated = DateTime.UtcNow
+                PhoneNumber = request.PhoneNumber,
+                UserName = $"{request.Firstname.ToLower().Replace(" ", "")}.{request.Lastname.ToLower().Replace(" ", "")}.{Guid.NewGuid().ToString()[..4]}",
+                DateCreated = DateTime.UtcNow,
+                TimeZoneId = request.TimeZoneId
             };
 
             var result = await userManager.CreateAsync(addedUser, request.Password);
@@ -64,20 +127,49 @@ namespace BarberShopManagementSystem.API.Controllers
             if (!result.Succeeded)
                 return BadRequest(result.Errors);
 
-            await userManager.AddToRoleAsync(addedUser, "Customer");
+            await userManager.AddToRoleAsync(addedUser, "Barber");
 
             var sent = await SendConfirmationEmailAsync(addedUser);
+
             if (!sent)
                 return BadRequest("Failed to send confirmation email");
 
             return Ok(new
             {
                 title = "Account Created",
-                message = "Please confirm your email address before logging in."
+                message = "Please confirm your email address before logging in.",
+                username = addedUser.UserName
             });
         }
 
+        [HttpPost("Login")]
+        public async Task<ActionResult<UserDTO>> login(CreatedLoginRequest request)
+        {
+            var user = await userManager.FindByNameAsync(request.Username);
+            if (user == null)
+            {
+                return Unauthorized("Invalid Username or Password");
+            }
+            if (user.EmailConfirmed == false)
+            {
+                return Unauthorized("Please confirm your email!");
+            }
+            var isBarber = await userManager.IsInRoleAsync(user, "Barber");
+            if (!isBarber)
+            {
+                return BadRequest("User is not a barber");
+            }
+            var result = await signInManager.CheckPasswordSignInAsync(user, request.Password, false);
+            if (!result.Succeeded)
+            {
+                return Unauthorized("Invalid Username or Password!");
+            }
+            var userDTO = mapper.Map<UserDTO>(user);
+            userDTO.Role = "Barber";
+            userDTO.JWT = await jwtService.CreateJWT(user);
 
+            return Ok(userDTO);
+        }
 
         [HttpPut("ConfirmEmail")]
         public async Task<IActionResult> ConfirmEmail(ConfirmEmailDTO model)
@@ -93,43 +185,18 @@ namespace BarberShopManagementSystem.API.Controllers
 
                 if (result.Succeeded)
                 {
-                    return Ok(new JsonResult(new { title = "Email confirmed", message = "Your email has been confirmed" }));
+                    return Ok(new JsonResult(new
+                    {
+                        title = "Email confirmed",
+                        message = "Your email has been confirmed",
+                        username = user.UserName
+                    }));
                 }
                 return BadRequest("Email could not be confirmed!");
             }
             catch (Exception)
             {
                 return BadRequest("Email could not be confirmed!");
-            }
-        }
-
-        //[Authorize]
-        //[HttpPost("refresh-user-token")]
-        //public async Task<ActionResult<UserDTO>> RefreshUserToken()
-        //{
-        //    var user = await userManager.FindByNameAsync(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-        //    return CreateApplicationUserDTO(user);
-        //}
-
-        [HttpPost("ResendEmailConfirmationLink/{email}")]
-        public async Task<IActionResult> ResendEmailConfirmationLink(string email)
-        {
-            if (string.IsNullOrEmpty(email)) return BadRequest("Invalid email!");
-            var user = await userManager.FindByEmailAsync(email);
-            if (user == null) return Unauthorized("This email address hasn't been registered yet!");
-            if (user.EmailConfirmed == true) return BadRequest("Your email address is already confirmed, please login to your account");
-
-            try
-            {
-                if (await SendConfirmationEmailAsync(user))
-                {
-                    return Ok(new JsonResult(new { title = "Confirmed link sent", message = "Please confirm your email address" }));
-                }
-                return BadRequest("Failed to send email!");
-            }
-            catch (Exception)
-            {
-                return BadRequest("Failed to send email!");
             }
         }
 
@@ -221,6 +288,23 @@ namespace BarberShopManagementSystem.API.Controllers
             var emailSent = new SendEmailDTO(user.Email, "Reset your username or password!", body);
             return await emailService.SendEmailAsync(emailSent);
         }
+
+
+        public bool IsPhoneValid(string countryCode, string phone)
+        {
+            var phoneNumberUtil = PhoneNumberUtil.GetInstance();
+
+            try
+            {
+                var number = phoneNumberUtil.Parse(countryCode + phone, null);
+                return phoneNumberUtil.IsValidNumber(number);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         #endregion
     }
 }

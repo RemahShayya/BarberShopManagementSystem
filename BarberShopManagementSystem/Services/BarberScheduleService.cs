@@ -1,6 +1,7 @@
 ﻿using BarberShopManagementSystem.API.Services.IServices;
 using BarberShopManagementSystem.Data.Entities;
 using BarberShopManagementSystem.Data.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 namespace BarberShopManagementSystem.API.Services
 {
@@ -22,17 +23,24 @@ namespace BarberShopManagementSystem.API.Services
             _barberScheduleRepo.Delete(barberSchedule.Id);
         }
 
-        public async Task<IEnumerable<BarberSchedule>> GetAllBarberSchedules()
+        public Task DeleteBarberSchedule(Guid id)
         {
-            return await _barberScheduleRepo.GetAll();
+            throw new NotImplementedException();
         }
 
-        public async Task<BarberSchedule?> GetBarberScheduleById(Guid id)
+        public async Task<IEnumerable<BarberSchedule>> GetAllBarberSchedules()
+        {
+            return await _barberScheduleRepo.GetAllWithIncludes(
+                s => s.Barber
+            );
+        }
+
+        public async Task<BarberSchedule?> GetScheduleByBarberById(Guid id)
         {
             return await _barberScheduleRepo.GetById(id);
         }
 
-        public async Task SaveBarberSchedule(BarberSchedule barberSchedule)
+        public async Task SaveBarberSchedule()
         {
             await _barberScheduleRepo.SaveAsync();
         }

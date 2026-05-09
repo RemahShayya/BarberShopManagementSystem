@@ -1,6 +1,7 @@
 ﻿using BarberShopManagementSystem.API.Services.IServices;
 using BarberShopManagementSystem.Data.Entities;
 using BarberShopManagementSystem.Data.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 namespace BarberShopManagementSystem.API.Services
 {
@@ -17,9 +18,9 @@ namespace BarberShopManagementSystem.API.Services
             return await _appointmentRepo.Insert(appointment);
         }
 
-        public void DeleteAppointment(Appointment appointment)
+        public void DeleteAppointment(Guid Id)
         {
-            _appointmentRepo.Delete(appointment.Id);
+            _appointmentRepo.Delete(Id);
         }
 
         public async Task<IEnumerable<Appointment>> GetAllAppointments()
@@ -27,12 +28,13 @@ namespace BarberShopManagementSystem.API.Services
             return await _appointmentRepo.GetAll();
         }
 
+
         public async Task<Appointment?> GetAppointmentById(Guid id)
         {
             return await _appointmentRepo.GetById(id);
         }
 
-        public async Task SaveAppointment(Appointment appointment)
+        public async Task SaveAppointment()
         {
             await _appointmentRepo.SaveAsync();
         }
@@ -41,5 +43,9 @@ namespace BarberShopManagementSystem.API.Services
         {
             return _appointmentRepo.Update(appointment);
         }
+
+        public IQueryable<Appointment> Query()
+            => _appointmentRepo.Query();
+
     }
 }

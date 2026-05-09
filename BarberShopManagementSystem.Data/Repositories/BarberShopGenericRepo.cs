@@ -16,6 +16,11 @@ namespace BarberShopManagementSystem.Data.Repositories
             _context = context;
         }
 
+        public IQueryable<T> Query()
+        {
+            return _context.Set<T>().AsQueryable();
+        }
+
         public void Delete(object id)
         {
             _context.Set<T>().Remove(_context.Set<T>().Find(id));
@@ -64,5 +69,6 @@ namespace BarberShopManagementSystem.Data.Repositories
             _context.Set<T>().Update(entity);
             return true;
         }
+
     }
 }

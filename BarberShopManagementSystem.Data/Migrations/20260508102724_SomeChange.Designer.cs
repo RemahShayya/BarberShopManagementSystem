@@ -4,6 +4,7 @@ using BarberShopManagementSystem.Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BarberShopManagementSystem.Data.Migrations
 {
     [DbContext(typeof(BarberShopContext))]
-    partial class BarberShopContextModelSnapshot : ModelSnapshot
+    [Migration("20260508102724_SomeChange")]
+    partial class SomeChange
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -41,6 +44,12 @@ namespace BarberShopManagementSystem.Data.Migrations
 
                     b.Property<DateTime>("EndTime")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool>("ReviewEmailSent")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ReviewToken")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("ServiceId")
                         .HasColumnType("uniqueidentifier");
@@ -70,27 +79,14 @@ namespace BarberShopManagementSystem.Data.Migrations
 
                     b.Property<string>("BarberId")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("CustomerId")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("EndTime")
                         .HasColumnType("datetime2");
-
-                    b.Property<bool>("ReviewEmailSent")
-                        .HasColumnType("bit");
-
-                    b.Property<Guid?>("ReviewId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ReviewToken")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("ServiceId")
                         .HasColumnType("uniqueidentifier");
@@ -99,14 +95,6 @@ namespace BarberShopManagementSystem.Data.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("BarberId");
-
-                    b.HasIndex("CustomerId");
-
-                    b.HasIndex("ReviewId");
-
-                    b.HasIndex("ServiceId");
 
                     b.ToTable("ArchivedAppointments");
                 });
@@ -489,39 +477,6 @@ namespace BarberShopManagementSystem.Data.Migrations
                     b.Navigation("Service");
                 });
 
-            modelBuilder.Entity("BarberShopManagementSystem.Data.Entities.ArchivedAppointment", b =>
-                {
-                    b.HasOne("BarberShopManagementSystem.Data.Entities.User", "Barber")
-                        .WithMany()
-                        .HasForeignKey("BarberId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("BarberShopManagementSystem.Data.Entities.User", "Customer")
-                        .WithMany()
-                        .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("BarberShopManagementSystem.Data.Entities.Review", "Review")
-                        .WithMany()
-                        .HasForeignKey("ReviewId");
-
-                    b.HasOne("BarberShopManagementSystem.Data.Entities.Service", "Service")
-                        .WithMany()
-                        .HasForeignKey("ServiceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Barber");
-
-                    b.Navigation("Customer");
-
-                    b.Navigation("Review");
-
-                    b.Navigation("Service");
-                });
-
             modelBuilder.Entity("BarberShopManagementSystem.Data.Entities.BarberSchedule", b =>
                 {
                     b.HasOne("BarberShopManagementSystem.Data.Entities.User", "Barber")
@@ -539,22 +494,22 @@ namespace BarberShopManagementSystem.Data.Migrations
 
             modelBuilder.Entity("BarberShopManagementSystem.Data.Entities.Review", b =>
                 {
-                    b.HasOne("BarberShopManagementSystem.Data.Entities.ArchivedAppointment", "Appointment")
-                        .WithMany()
-                        .HasForeignKey("AppointmentId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                    b.HasOne("BarberShopManagementSystem.Data.Entities.Appointment", "Appointment")
+                        .WithOne("Review")
+                        .HasForeignKey("BarberShopManagementSystem.Data.Entities.Review", "AppointmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("BarberShopManagementSystem.Data.Entities.User", "Barber")
                         .WithMany()
                         .HasForeignKey("BarberId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("BarberShopManagementSystem.Data.Entities.User", "Customer")
                         .WithMany()
                         .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("BarberShopManagementSystem.Data.Entities.User", null)
@@ -617,6 +572,11 @@ namespace BarberShopManagementSystem.Data.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("BarberShopManagementSystem.Data.Entities.Appointment", b =>
+                {
+                    b.Navigation("Review");
                 });
 
             modelBuilder.Entity("BarberShopManagementSystem.Data.Entities.Service", b =>

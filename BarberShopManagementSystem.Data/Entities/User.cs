@@ -10,6 +10,7 @@ namespace BarberShopManagementSystem.Data.Entities
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
         public DateTime DateCreated { get; set; }
+        public string? TimeZoneId { get; set; }
 
         public ICollection<Appointment> CustomerAppointments { get; set; } = new List<Appointment>();
         public ICollection<Appointment> BarberAppointments { get; set; } = new List<Appointment>();

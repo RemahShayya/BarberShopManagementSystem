@@ -2,7 +2,7 @@
 
 namespace BarberShopManagementSystem.API.DTO.CreatedRequest
 {
-    public class CreatedCustomerSignUpRequest
+    public class CreatedEmployeeRequest
     {
         [Required]
         [StringLength(15, MinimumLength = 3, ErrorMessage = "First name must be at least 3 and at most 15 characters long!")]

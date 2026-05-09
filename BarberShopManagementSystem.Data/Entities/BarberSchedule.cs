@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace BarberShopManagementSystem.Data.Entities
 {
@@ -9,18 +10,11 @@ namespace BarberShopManagementSystem.Data.Entities
     {
         public User Barber { get; set; }
         public string BarberId { get; set; }
-        public DayOfWeek DayOfWeek { get; set; }
-        public TimeSpan StartHour { get; set; }
-        public TimeSpan EndHour { get; set; }
+        public DateTime Day { get; set; }
+        public TimeSpan? StartHour { get; set; }
+        public TimeSpan? EndHour { get; set; }
+        public bool IsDayOff { get; set; } = false;
+        [NotMapped]
+        public DayOfWeek DayOfWeek => Day.DayOfWeek;
     }
-        public enum DayOfWeek
-        {
-            Sunday,
-            Monday,
-            Tuesday,
-            Wednesday,
-            Thursday,
-            Friday,
-            Saturday
-        }
 }

@@ -7,6 +7,7 @@ namespace BarberShopManagementSystem.Data.Repositories
 {
     public interface IBarberShopGenericRepo<T> where T : class
     {
+        IQueryable<T> Query();
         Task<IEnumerable<T>> GetAll();
         Task<T> GetById(object id);
         Task<T> Insert(T entity);
@@ -15,5 +16,6 @@ namespace BarberShopManagementSystem.Data.Repositories
         Task SaveAsync();
         Task<bool> Exists(object id);
         Task<IEnumerable<T>> GetAllWithIncludes (params Expression<Func<T, object>>[] includes);
+
     }
 }
