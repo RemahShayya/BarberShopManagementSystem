@@ -4,13 +4,14 @@ using BarberShopManagementSystem.API.DTO.CreatedRequest;
 using BarberShopManagementSystem.API.Services;
 using BarberShopManagementSystem.API.Services.IServices;
 using BarberShopManagementSystem.Data.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
-using System.Text;
 using PhoneNumbers;
+using System.Text;
 
 namespace BarberShopManagementSystem.API.Controllers
 {
@@ -38,6 +39,7 @@ namespace BarberShopManagementSystem.API.Controllers
         }
 
         [HttpGet("get_barber/{username}")]
+        [Authorize(Roles = "Customer, Admin, Barber")]
         public async Task<ActionResult<UserDTO>> GetBarberById(string username)
         {
             var user = await userManager.FindByNameAsync(username);
@@ -61,6 +63,7 @@ namespace BarberShopManagementSystem.API.Controllers
         }
 
         [HttpGet("get_all_barbers")]
+        [Authorize(Roles = "Customer, Admin, Barber")]
         public async Task<ActionResult<IEnumerable<UserDTO>>> GetAllEmployees(string? search, [FromQuery] int pageNumber, [FromQuery] int pageSize)
         {
             var barbers = await userManager.GetUsersInRoleAsync("Barber");
@@ -94,6 +97,7 @@ namespace BarberShopManagementSystem.API.Controllers
         }
 
         [HttpPost("Register_Barber")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Register(CreatedCustomerAndBarberSignUpRequest request)
         {
             if (await CheckIfEmailExist(request.Email))

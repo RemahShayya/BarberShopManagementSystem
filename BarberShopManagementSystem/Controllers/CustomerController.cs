@@ -40,6 +40,7 @@ namespace BarberShopManagementSystem.API.Controllers
         }
 
         [HttpGet("get_customer/{id}")]
+        [Authorize(Roles = "Admin, Barber")]
         public async Task<ActionResult<UserDTO>> GetCustomerById(string id)
         {
             var user = await userManager.FindByIdAsync(id);
@@ -59,6 +60,7 @@ namespace BarberShopManagementSystem.API.Controllers
         }
 
         [HttpGet("get_all_customers")]
+        [Authorize(Roles = "Admin, Customer")]
         public async Task<ActionResult<IEnumerable<UserDTO>>> GetAllEmployees(string? search, [FromQuery] int pageNumber, [FromQuery] int pageSize)
         {
             var customer = await userManager.GetUsersInRoleAsync("Customer");
@@ -82,6 +84,7 @@ namespace BarberShopManagementSystem.API.Controllers
         }
 
         [HttpPost("Login")]
+        [Authorize(Roles = "Customer")]
         public async Task<ActionResult<UserDTO>> login(CreatedLoginRequest request)
         {
             var user = await userManager.FindByNameAsync(request.Username);
@@ -148,6 +151,7 @@ namespace BarberShopManagementSystem.API.Controllers
 
 
         [HttpPut("ConfirmEmail")]
+
         public async Task<IActionResult> ConfirmEmail(ConfirmEmailDTO model)
         {
             var user = await userManager.FindByEmailAsync(model.Email);

@@ -4,6 +4,7 @@ using BarberShopManagementSystem.API.DTO.CreatedRequest;
 using BarberShopManagementSystem.API.Services;
 using BarberShopManagementSystem.API.Services.IServices;
 using BarberShopManagementSystem.Data.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -40,6 +41,7 @@ namespace BarberShopManagementSystem.API.Controllers
 
         [HttpPost]
         [ProducesResponseType(typeof(AppointmentDTO), StatusCodes.Status201Created)]
+        [Authorize(Roles = "Admin, Customer")]
         public async Task<ActionResult<AppointmentDTO>> CreateAppointment(
     [FromBody] CreateAppointmentRequest request)
         {
@@ -143,6 +145,7 @@ namespace BarberShopManagementSystem.API.Controllers
 
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin, Customer")]
         public async Task<ActionResult<AppointmentDTO>> UpdateAppointment(
     Guid id,
     [FromBody] CreateAppointmentRequest request)
@@ -214,6 +217,7 @@ namespace BarberShopManagementSystem.API.Controllers
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(AppointmentDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize(Roles = "Admin, Customer, Barber")]
         public async Task<ActionResult<AppointmentDTO>> GetAppointmentById([FromRoute] Guid id)
         {
             var appointment = await _appointmentService.GetAppointmentById(id);
@@ -231,6 +235,7 @@ namespace BarberShopManagementSystem.API.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize(Roles = "Admin, Customer, Barber")]
         public async Task<IActionResult> DeleteAppointment([FromRoute] Guid id)
         {
             // 1. Validate ID

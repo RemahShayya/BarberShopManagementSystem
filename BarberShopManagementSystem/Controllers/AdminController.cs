@@ -18,15 +18,15 @@ namespace BarberShopManagementSystem.API.Controllers
         private readonly JWTService jwtService;
         private readonly SignInManager<User> signInManager;
         private readonly UserManager<User> userManager;
-        
+
         public AdminController(UserManager<User> userManager, SignInManager<User> signInManager, JWTService jwtService)
         {
             this.userManager = userManager;
             this.signInManager = signInManager;
             this.jwtService = jwtService;
         }
-
         [HttpPost("Login_Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<UserDTO>> LoginAdmin(CreatedLoginRequest request)
         {
             var user = await userManager.FindByNameAsync(request.Username);
@@ -45,6 +45,7 @@ namespace BarberShopManagementSystem.API.Controllers
         }
 
         [HttpPost("Create_Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateAdmin(RegisterAdminRequest request)
         {
             if (await userManager.FindByNameAsync(request.Username) != null)

@@ -30,6 +30,7 @@ namespace BarberShopManagementSystem.API.Controllers
 
         // GET: api/BarberSchedule
         [HttpGet]
+        [Authorize(Roles = "Barber, Admin, Customer")]
         public async Task<ActionResult<IEnumerable<BarberScheduleDTO>>> GetAll()
         {
             var schedules = await _barberScheduleService.GetAllBarberSchedules();
@@ -38,6 +39,7 @@ namespace BarberShopManagementSystem.API.Controllers
         }
 
         [HttpGet("{username}/{day}")]
+        [Authorize(Roles = "Barber, Admin, Customer")]
         public async Task<ActionResult<BarberScheduleDTO>> GetByBarberDay(string username, DateTime day)
         {
             var schedule = await _barberScheduleService
@@ -54,6 +56,7 @@ namespace BarberShopManagementSystem.API.Controllers
 
 
         [HttpPost("Add_Schedule")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<IEnumerable<BarberScheduleDTO>>> CreateSchedule(
             [FromBody] List<CreatedBarberScheduleRequest> schedules)
         {
@@ -120,6 +123,7 @@ namespace BarberShopManagementSystem.API.Controllers
         }
 
         [HttpPut]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> Update([FromBody] CreatedBarberScheduleRequest request)
         {
             var existing = (await _barberScheduleService.GetAllBarberSchedules())
@@ -130,7 +134,7 @@ namespace BarberShopManagementSystem.API.Controllers
 
             if (request.Day.Date < DateTime.Today)
             {
-                return BadRequest($"Cannot create schedule for a past date: {request.Day:yyyy-MM-dd}");
+                return BadRequest($"Cannot update schedule for a past date: {request.Day:yyyy-MM-dd}");
             }
 
             if (!request.IsDayOff)
@@ -158,6 +162,8 @@ namespace BarberShopManagementSystem.API.Controllers
 
 
         [HttpDelete]
+        [Authorize(Roles = "Admin")]
+
         public async Task<ActionResult> DeleteSchedule(string username, DateTime day)
         {
             var existing = (await _barberScheduleService.GetAllBarberSchedules())

@@ -3,6 +3,7 @@ using BarberShopManagementSystem.API.DTO;
 using BarberShopManagementSystem.API.DTO.CreatedRequest;
 using BarberShopManagementSystem.API.Services.IServices;
 using BarberShopManagementSystem.Data.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,6 +22,7 @@ namespace BarberShopManagementSystem.API.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "Barber, Admin, Customer")]
         public async Task<ActionResult<IEnumerable<ServiceDTO>>> GetAllServices()
         {
             var services = await _servicesService.GetAllServices();
@@ -29,6 +31,7 @@ namespace BarberShopManagementSystem.API.Controllers
         }
 
         [HttpGet("{id}")]
+        [Authorize(Roles = "Barber, Admin, Customer")]
         public async Task<ActionResult<ServiceDTO>> GetServiceById(Guid id)
         {
             var service = await _servicesService.GetServiceById(id);
@@ -41,6 +44,7 @@ namespace BarberShopManagementSystem.API.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<ServiceDTO>> AddService([FromBody] CreatedServiceRequest request)
         {
             var addedService = _mapper.Map<Service>(request);
@@ -55,6 +59,7 @@ namespace BarberShopManagementSystem.API.Controllers
         }
 
         [HttpPut]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<ServiceDTO>> UpdateService(Guid id, [FromBody] CreatedServiceRequest request)
         {
             var existingService = await _servicesService.GetServiceById(id);
@@ -72,6 +77,7 @@ namespace BarberShopManagementSystem.API.Controllers
         }
 
         [HttpDelete]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteService(Guid id)
         {
             var service = await _servicesService.GetServiceById(id);
