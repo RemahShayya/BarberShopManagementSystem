@@ -4,6 +4,7 @@ using BarberShopManagementSystem.Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BarberShopManagementSystem.Data.Migrations
 {
     [DbContext(typeof(BarberShopContext))]
-    partial class BarberShopContextModelSnapshot : ModelSnapshot
+    [Migration("20260601115204_Add-Profession")]
+    partial class AddProfession
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -313,7 +316,7 @@ namespace BarberShopManagementSystem.Data.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<Guid>("ProfessionId")
+                    b.Property<Guid?>("ProfessionId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
@@ -627,13 +630,9 @@ namespace BarberShopManagementSystem.Data.Migrations
 
             modelBuilder.Entity("BarberShopManagementSystem.Data.Entities.Service", b =>
                 {
-                    b.HasOne("BarberShopManagementSystem.Data.Entities.Profession", "Profession")
+                    b.HasOne("BarberShopManagementSystem.Data.Entities.Profession", null)
                         .WithMany("Services")
-                        .HasForeignKey("ProfessionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Profession");
+                        .HasForeignKey("ProfessionId");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

@@ -11,11 +11,17 @@ namespace BarberShopManagementSystem.Data.Repositories
         Task<IEnumerable<T>> GetAll();
         Task<T> GetById(object id);
         Task<T> Insert(T entity);
-        bool Update(T entity);
-        void Delete(object id);
+        Task<bool> Update(T entity);
+        public Task<bool> Delete(object id);
         Task SaveAsync();
         Task<bool> Exists(object id);
-        Task<IEnumerable<T>> GetAllWithIncludes (params Expression<Func<T, object>>[] includes);
+        Task<IEnumerable<T>> GetAllWithIncludes(
+    params Expression<Func<T, object>>[] includes);
 
+        Task<IEnumerable<T>> GetAllWithIncludes(
+            Expression<Func<T, bool>>? filter,
+            params Expression<Func<T, object>>[] includes);
     }
+
 }
+

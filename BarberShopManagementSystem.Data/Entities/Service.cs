@@ -11,7 +11,8 @@ namespace BarberShopManagementSystem.Data.Entities
         public string Description { get; set; }
         public decimal Price { get; set; }
         public TimeSpan DurationInMinutes { get; set; }
-
+        public Profession Profession { get; set; }
+        public Guid ProfessionId { get; set; }
         public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
     }
 }

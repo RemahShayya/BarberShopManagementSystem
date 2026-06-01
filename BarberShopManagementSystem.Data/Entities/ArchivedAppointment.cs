@@ -9,8 +9,8 @@ namespace BarberShopManagementSystem.Data.Entities
     {
         public User Customer { get; set; }
         public string CustomerId { get; set; }
-        public User Barber { get; set; }
-        public string BarberId { get; set; }
+        public User Employee { get; set; }
+        public string EmployeeId { get; set; }
         public Guid ServiceId { get; set; }
         public Service Service { get; set; }
 

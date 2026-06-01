@@ -8,10 +8,9 @@ namespace BarberShopManagementSystem.Data.Entities
 {
     public class Review : ShopBaseEntity
     {
-        public ArchivedAppointment Appointment { get; set; }
         public Guid AppointmentId { get; set; }
-        public User Barber { get; set; }
-        public string BarberId { get; set; }
+        public User Employee { get; set; }
+        public string EmployeeId { get; set; }
         public User Customer { get; set; }
         public string CustomerId { get; set; }
         [Range(1, 5)]

@@ -32,7 +32,7 @@ namespace BarberShopManagementSystem.API.Services
                     StartTime = appointment.StartTime,
                     EndTime = appointment.EndTime,
                     CustomerId = appointment.CustomerId,
-                    BarberId = appointment.BarberId,
+                    EmployeeId = appointment.EmployeeId,
                     ServiceId = appointment.ServiceId,
                     ReviewToken = Guid.NewGuid().ToString(),
                     ReviewEmailSent = false

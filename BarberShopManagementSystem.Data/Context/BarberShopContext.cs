@@ -39,9 +39,9 @@ namespace BarberShopManagementSystem.Data.Context
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<User>()
-                .HasMany(u => u.BarberAppointments)
-                .WithOne(a => a.Barber)
-                .HasForeignKey(a => a.BarberId)
+                .HasMany(u => u.EmployeeAppointments)
+                .WithOne(a => a.Employee)
+                .HasForeignKey(a => a.EmployeeId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // --------------------------
@@ -91,14 +91,10 @@ namespace BarberShopManagementSystem.Data.Context
                 entity.HasIndex(r => r.AppointmentId).IsUnique();
                 entity.HasKey(r => r.Id);
 
-                entity.HasOne(r => r.Appointment)
-                      .WithMany()
-                      .HasForeignKey(r => r.AppointmentId)
-                      .OnDelete(DeleteBehavior.NoAction); // ← add this
 
-                entity.HasOne(r => r.Barber)
+                entity.HasOne(r => r.Employee)
                       .WithMany()
-                      .HasForeignKey(r => r.BarberId)
+                      .HasForeignKey(r => r.EmployeeId)
                       .OnDelete(DeleteBehavior.NoAction);  // keep as-is
 
                 entity.HasOne(r => r.Customer)
@@ -119,7 +115,7 @@ namespace BarberShopManagementSystem.Data.Context
             // --------------------------
             // BarberSchedule
             // --------------------------
-            modelBuilder.Entity<BarberSchedule>(entity =>
+            modelBuilder.Entity<EmployeeSchedule>(entity =>
             {
                 entity.HasKey(bs => bs.Id);
 
@@ -130,9 +126,9 @@ namespace BarberShopManagementSystem.Data.Context
                 entity.Property(bs => bs.EndHour)
                       .IsRequired(false);
 
-                entity.HasOne(bs => bs.Barber)
+                entity.HasOne(bs => bs.Employee)
                       .WithMany()
-                      .HasForeignKey(bs => bs.BarberId)
+                      .HasForeignKey(bs => bs.EmployeeId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
 
@@ -148,9 +144,9 @@ namespace BarberShopManagementSystem.Data.Context
                       .HasForeignKey(a => a.CustomerId)
                       .OnDelete(DeleteBehavior.NoAction);
 
-                entity.HasOne(a => a.Barber)
+                entity.HasOne(a => a.Employee)
                       .WithMany()
-                      .HasForeignKey(a => a.BarberId)
+                      .HasForeignKey(a => a.EmployeeId)
                       .OnDelete(DeleteBehavior.NoAction);
             });
             modelBuilder.Entity<Review>(entity =>
@@ -158,14 +154,9 @@ namespace BarberShopManagementSystem.Data.Context
     entity.HasIndex(r => r.AppointmentId).IsUnique();
     entity.HasKey(r => r.Id);
 
-    entity.HasOne(r => r.Appointment)
-          .WithMany()
-          .HasForeignKey(r => r.AppointmentId)
-          .OnDelete(DeleteBehavior.NoAction); // ← add this
-
-    entity.HasOne(r => r.Barber)
+    entity.HasOne(r => r.Employee)
              .WithMany()
-          .HasForeignKey(r => r.BarberId)
+          .HasForeignKey(r => r.EmployeeId)
           .OnDelete(DeleteBehavior.NoAction);  // keep as-is
 
     entity.HasOne(r => r.Customer)
@@ -197,9 +188,9 @@ namespace BarberShopManagementSystem.Data.Context
                 new Role
                 {
                     Id = "e7c9d2a5-1b3f-4f4b-9b3a-2a1e3f5b6d77",
-                    Name = "Barber",
-                    NormalizedName = "BARBER",
-                    Description = "Barber role with permission to manage appointments",
+                    Name = "Employee",
+                    NormalizedName = "EMPLOYEE",
+                    Description = "Employee role with limited permissions",
                     ConcurrencyStamp = "33333333-3333-3333-3333-333333333333"
                 }
             );
@@ -208,7 +199,9 @@ namespace BarberShopManagementSystem.Data.Context
         public DbSet<Service> Services { get; set; }
         public DbSet<Appointment> Appointments { get; set; }
         public DbSet<Review> Reviews { get; set; }
-        public DbSet<BarberSchedule> BarberSchedules { get; set; }
+        public DbSet<EmployeeSchedule> EmployeeSchedules { get; set; }
         public DbSet<ArchivedAppointment> ArchivedAppointments { get; set; }
+        public DbSet<Profession> Professions { get; set; }
+        public DbSet<EmployeeProfession> EmployeeProfessions { get; set; }
     }
 }

@@ -37,9 +37,9 @@ namespace BarberShopManagementSystem.API.Services
             await _reviewRepo.SaveAsync();
         }
 
-        public bool UpdateReview(Review review)
+        public async Task<bool> UpdateReview(Review review)
         {
-            return _reviewRepo.Update(review);
+            return await _reviewRepo.Update(review);
         }
     }
 }

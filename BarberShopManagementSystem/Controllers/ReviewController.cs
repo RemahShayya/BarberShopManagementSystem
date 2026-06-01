@@ -48,7 +48,7 @@ namespace BarberShopManagementSystem.API.Controllers
             var review = _mapper.Map<Review>(request);
 
             review.AppointmentId = archivedAppointment.Id;
-            review.BarberId = archivedAppointment.BarberId;
+            review.EmployeeId = archivedAppointment.EmployeeId;
             review.CustomerId = archivedAppointment.CustomerId;
             review.CreatedAt = DateTime.UtcNow;
 
@@ -73,12 +73,12 @@ namespace BarberShopManagementSystem.API.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public async Task<IActionResult> GetAll([FromQuery] string barberId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+        public async Task<IActionResult> GetAll([FromQuery] string employeeId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
             var reviews = await _reviewService.GetAllReviews();
 
-            if (!string.IsNullOrEmpty(barberId))
-                reviews = reviews.Where(r => r.BarberId == barberId);
+            if (!string.IsNullOrEmpty(employeeId))
+                reviews = reviews.Where(r => r.EmployeeId == employeeId);
 
             var paginated = reviews
                 .OrderByDescending(r => r.CreatedAt)

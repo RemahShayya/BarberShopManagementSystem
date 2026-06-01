@@ -1,4 +1,6 @@
-﻿namespace BarberShopManagementSystem.API.DTO.CreatedRequest
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace BarberShopManagementSystem.API.DTO.CreatedRequest
 {
     public class CreatedServiceRequest
     {
@@ -6,5 +8,8 @@
         public string Description { get; set; }
         public decimal Price { get; set; }
         public int DurationInMinutes { get; set; }
+
+        [Required]
+        public Guid ProfessionId { get; set; }
     }
 }

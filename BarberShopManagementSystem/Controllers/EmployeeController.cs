@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using PhoneNumbers;
+using System.Security.Claims;
 using System.Text;
 
 namespace BarberShopManagementSystem.API.Controllers
@@ -25,9 +26,11 @@ namespace BarberShopManagementSystem.API.Controllers
         private readonly EmailService emailService;
         private readonly IConfiguration configuration;
         private readonly IUserService userService;
+        private readonly IEmployeeProfessionService _employeeProfessionService;
+        private readonly IProfessionService _professionService;
         private readonly IMapper mapper;
 
-        public EmployeeController(JWTService jwtService, SignInManager<User> signInManager, UserManager<User> userManager, IConfiguration configuration, IUserService userService, IMapper mapper, EmailService emailService)
+        public EmployeeController(JWTService jwtService, SignInManager<User> signInManager, UserManager<User> userManager, IConfiguration configuration, IUserService userService, IMapper mapper, EmailService emailService, IEmployeeProfessionService employeeProfessionService, IProfessionService professionService)
         {
             this.jwtService = jwtService;
             this.signInManager = signInManager;
@@ -36,73 +39,142 @@ namespace BarberShopManagementSystem.API.Controllers
             this.userService = userService;
             this.mapper = mapper;
             this.emailService = emailService;
+            this._employeeProfessionService = employeeProfessionService;
+            this._professionService = professionService;
         }
 
-        [HttpGet("get_barber/{username}")]
-        [Authorize(Roles = "Customer, Admin, Barber")]
-        public async Task<ActionResult<UserDTO>> GetBarberById(string username)
+        [HttpGet("get_employee/{username}")]
+        [Authorize(Roles = "Customer, Admin, Employee")]
+        public async Task<ActionResult<UserDTO>> GetEmployeeByUsername(string username)
         {
             var user = await userManager.FindByNameAsync(username);
             if (user == null)
             {
-                return NotFound($"Barber with Username {username} not found");
+                return NotFound($"Employee with Username {username} not found");
             }
 
-            var isBarber = await userManager.IsInRoleAsync(user, "Barber");
-            if (!isBarber)
+            var isEmployee = await userManager.IsInRoleAsync(user, "Employee");
+            if (!isEmployee)
             {
-                return BadRequest("User is not a barber");
+                return BadRequest("User is not an employee");
             }
 
             var roles = await userManager.GetRolesAsync(user);
 
             var userDTO = mapper.Map<UserDTO>(user);
-            userDTO.Role = roles.FirstOrDefault(); 
+            userDTO.Role = roles.FirstOrDefault();
 
             return Ok(userDTO);
         }
 
-        [HttpGet("get_all_barbers")]
-        [Authorize(Roles = "Customer, Admin, Barber")]
-        public async Task<ActionResult<IEnumerable<UserDTO>>> GetAllEmployees(string? search, [FromQuery] int pageNumber, [FromQuery] int pageSize)
+        [HttpGet("me")]
+        [Authorize(Roles = "Employee")]
+        public async Task<ActionResult<UserDTO>> GetMe()
         {
-            var barbers = await userManager.GetUsersInRoleAsync("Barber");
-            var barbersList = barbers.ToList();
+            var employeeId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            if (!string.IsNullOrEmpty(search))
+            var user = await userManager.FindByIdAsync(employeeId!);
+            if (user is null)
+                return NotFound("Employee profile could not be found.");
+
+            var roles = await userManager.GetRolesAsync(user);
+            var dto = mapper.Map<UserDTO>(user);
+            dto.Role = roles.FirstOrDefault();
+
+            return Ok(dto);
+        }
+
+        [HttpDelete("delete/{username}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Delete(string username)
+        {
+            var user = await userManager.FindByNameAsync(username);
+            if (user is null)
+                return NotFound($"Employee with username '{username}' was not found.");
+
+            var isEmployee = await userManager.IsInRoleAsync(user, "Employee");
+            if (!isEmployee)
+                return BadRequest("The specified user is not an employee.");
+
+            // Guard: block deletion while future appointments exist.
+            bool hasFutureAppointments = await userManager.Users
+                .Where(u => u.Id == user.Id)
+                .AnyAsync(u => u.EmployeeAppointments
+                    .Any(a => a.StartTime > DateTime.UtcNow));
+
+            if (hasFutureAppointments)
+                return Conflict(
+                    "Cannot delete this employee because they have upcoming appointments. " +
+                    "Reassign or cancel those appointments first.");
+
+            var result = await userManager.DeleteAsync(user);
+            if (!result.Succeeded)
+                return StatusCode(500, new { message = "Failed to delete employee.", errors = result.Errors });
+
+            return NoContent();
+        }
+
+        [HttpGet("get_all_employees")]
+        [Authorize(Roles = "Customer, Admin, Employee")]
+        public async Task<ActionResult<IEnumerable<UserDTO>>> GetEmployeeByProfession(
+       [FromQuery] string? search,
+       [FromQuery] Guid? professionId,
+       [FromQuery] int pageNumber = 1,
+       [FromQuery] int pageSize = 10)
+        {
+            // If filtering by profession, resolve the employee ID list first.
+            IEnumerable<string>? employeeIdsForProfession = null;
+            if (professionId.HasValue)
             {
-                barbersList = barbersList
-                    .Where(b => (b.FirstName + " " + b.LastName)
-                        .Contains(search, StringComparison.OrdinalIgnoreCase))
-                    .ToList();
+                var profession = await _professionService.GetProfessionById(professionId.Value);
+                if (profession is null)
+                    return NotFound($"Profession with ID '{professionId}' was not found.");
+
+                employeeIdsForProfession = await _employeeProfessionService.Query()
+                    .Where(ep => ep.ProfessionId == professionId.Value)
+                    .Select(ep => ep.EmployeeId)
+                    .ToHashSetAsync();
             }
 
-            var paginatedBarbers = barbersList
-                .OrderBy(c => c.FirstName)
+            var employees = await userManager.GetUsersInRoleAsync("Employee");
+            var employeesList = employees.AsEnumerable();
+
+            // Apply profession filter.
+            if (employeeIdsForProfession is not null)
+                employeesList = employeesList.Where(e => employeeIdsForProfession.Contains(e.Id));
+
+            // Apply name search.
+            if (!string.IsNullOrWhiteSpace(search))
+                employeesList = employeesList.Where(e =>
+                    (e.FirstName + " " + e.LastName)
+                        .Contains(search, StringComparison.OrdinalIgnoreCase));
+
+            var paginated = employeesList
+                .OrderBy(e => e.FirstName)
+                .ThenBy(e => e.LastName)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToList();
 
-            var userBarberDTO = new List<UserDTO>();
-
-            foreach (var user in paginatedBarbers)
+            var result = new List<UserDTO>();
+            foreach (var user in paginated)
             {
                 var roles = await userManager.GetRolesAsync(user);
                 var dto = mapper.Map<UserDTO>(user);
                 dto.Role = roles.FirstOrDefault();
-                userBarberDTO.Add(dto);
+                result.Add(dto);
             }
 
-            return Ok(userBarberDTO);
+            return Ok(result);
         }
 
-        [HttpPost("Register_Barber")]
+        [HttpPost("Register_Employee")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Register(CreatedCustomerAndBarberSignUpRequest request)
         {
             if (await CheckIfEmailExist(request.Email))
                 return Unauthorized($"An existing account is using {request.Email}");
-            if(!IsPhoneValid(request.CountryCode, request.PhoneNumber))
+            if (!IsPhoneValid(request.CountryCode, request.PhoneNumber))
                 return BadRequest("Invalid phone number");
 
             TimeZoneInfo timeZone;
@@ -131,7 +203,7 @@ namespace BarberShopManagementSystem.API.Controllers
             if (!result.Succeeded)
                 return BadRequest(result.Errors);
 
-            await userManager.AddToRoleAsync(addedUser, "Barber");
+            await userManager.AddToRoleAsync(addedUser, "Employee");
 
             var sent = await SendConfirmationEmailAsync(addedUser);
 
@@ -158,10 +230,10 @@ namespace BarberShopManagementSystem.API.Controllers
             {
                 return Unauthorized("Please confirm your email!");
             }
-            var isBarber = await userManager.IsInRoleAsync(user, "Barber");
-            if (!isBarber)
+            var isEmployee = await userManager.IsInRoleAsync(user, "Employee");
+            if (!isEmployee)
             {
-                return BadRequest("User is not a barber");
+                return BadRequest("User is not an employee");
             }
             var result = await signInManager.CheckPasswordSignInAsync(user, request.Password, false);
             if (!result.Succeeded)
@@ -169,7 +241,7 @@ namespace BarberShopManagementSystem.API.Controllers
                 return Unauthorized("Invalid Username or Password!");
             }
             var userDTO = mapper.Map<UserDTO>(user);
-            userDTO.Role = "Barber";
+            userDTO.Role = "Employee";
             userDTO.JWT = await jwtService.CreateJWT(user);
 
             return Ok(userDTO);
@@ -247,6 +319,39 @@ namespace BarberShopManagementSystem.API.Controllers
             {
                 return BadRequest("Password could not be reset!");
             }
+        }
+
+
+        [Authorize(Roles = "Employee")]
+        [HttpPost("ChangePassword")]
+        public async Task<IActionResult> ChangePassword(CreateChangePassword request)
+        {
+            if (request.NewPassword != request.ConfirmPassword)
+                return BadRequest("Passwords do not match.");
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            var user = await userManager.FindByIdAsync(userId);
+
+            if (user == null)
+                return NotFound("Employee not found.");
+
+            var result = await userManager.ChangePasswordAsync(
+                user,
+                request.CurrentPassword,
+                request.NewPassword);
+
+            if (!result.Succeeded)
+                return BadRequest(result.Errors);
+
+            return Ok(new
+            {
+                title = "Password Changed",
+                message = "Your password has been changed successfully."
+            });
         }
 
         #region

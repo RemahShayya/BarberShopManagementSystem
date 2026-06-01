@@ -4,7 +4,7 @@
     {
         public Guid Id { get; set; }
         public string CustomerName { get; set; }
-        public string BarberName { get; set; }
+        public string EmployeeName { get; set; }
         public string ServiceName { get; set; }
         public DateTime AppointmentStart { get; set; }
         public TimeSpan AppointmentDuration { get; set; }

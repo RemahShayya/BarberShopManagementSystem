@@ -2,7 +2,7 @@
 
 namespace BarberShopManagementSystem.API.DTO.CreatedRequest
 {
-    public class CreatedBarberScheduleRequest
+    public class CreatedEmployeeScheduleRequest
     {
         [Required]
         public string Username { get; set; }

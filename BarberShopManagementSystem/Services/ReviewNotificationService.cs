@@ -40,14 +40,14 @@ namespace BarberShopManagementSystem.API.Services
                 if(!_userManager.IsInRoleAsync(user, "Customer").Result)
                     continue;
 
-                var barber = await _userManager.FindByIdAsync(appointment.BarberId);
+                var employee = await _userManager.FindByIdAsync(appointment.EmployeeId);
 
-                if (barber == null)
+                if (employee == null)
                     continue;
-                if (!_userManager.IsInRoleAsync(barber, "Barber").Result)
+                if (!_userManager.IsInRoleAsync(employee, "Barber").Result)
                     continue;
 
-                await _emailHelper.SendReviewEmailAsync(user, appointment, barber);
+                await _emailHelper.SendReviewEmailAsync(user, appointment, employee);
 
                 appointment.ReviewEmailSent = true;
 

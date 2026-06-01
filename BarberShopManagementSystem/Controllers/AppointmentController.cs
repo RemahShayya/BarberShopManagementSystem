@@ -5,6 +5,7 @@ using BarberShopManagementSystem.API.Services;
 using BarberShopManagementSystem.API.Services.IServices;
 using BarberShopManagementSystem.Data.Entities;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -18,23 +19,26 @@ namespace BarberShopManagementSystem.API.Controllers
     {
         private readonly UserManager<User> _userManager;
         private readonly IAppointmentService _appointmentService;
-        private readonly IBarberScheduleService _barberScheduleService;
+        private readonly IEmployeeScheduleService _employeeScheduleService;
         private readonly IServicesService _serviceService;
+        private readonly IEmployeeProfessionService _employeeProfessionService;
         private readonly IMapper _mapper;
         private readonly ILogger<AppointmentController> _logger;
 
         public AppointmentController(
             UserManager<User> userManager,
             IAppointmentService appointmentService,
-            IBarberScheduleService barberScheduleService,
+            IEmployeeScheduleService employeeScheduleService,
             IServicesService serviceService,
+            IEmployeeProfessionService employeeProfessionService,
             IMapper mapper,
             ILogger<AppointmentController> logger)
         {
             _userManager = userManager;
             _appointmentService = appointmentService;
-            _barberScheduleService = barberScheduleService;
+            _employeeScheduleService = employeeScheduleService;
             _serviceService = serviceService;
+            _employeeProfessionService = employeeProfessionService;
             _mapper = mapper;
             _logger = logger;
         }
@@ -52,67 +56,76 @@ namespace BarberShopManagementSystem.API.Controllers
             if (customer == null)
                 return Unauthorized();
 
-            var barber = await _userManager.FindByNameAsync(request.BarberUsername);
-            if (barber == null || !await _userManager.IsInRoleAsync(barber, "Barber"))
-                return BadRequest("Invalid barber");
+            var employee = await _userManager.FindByNameAsync(request.EmployeeUsername);
+            if (employee == null || !await _userManager.IsInRoleAsync(employee, "Employee"))
+                return BadRequest("Invalid employee");
 
-            if (string.IsNullOrWhiteSpace(barber.TimeZoneId))
-                return BadRequest("Barber timezone not configured");
+            if (string.IsNullOrWhiteSpace(employee.TimeZoneId))
+                return BadRequest("Employee timezone not configured");
 
             var service = await _serviceService.GetServiceById(request.ServiceId);
             if (service == null)
                 return BadRequest("Service not found");
 
-            // 1️⃣ Local datetime (barber local time)
+            bool isQualified = await _employeeProfessionService.Query()
+                .AnyAsync(ep =>
+                ep.EmployeeId == employee.Id &&
+                ep.ProfessionId == service.ProfessionId);
+
+            if (!isQualified)
+                return BadRequest(
+                    $"This employee does not perform '{service.Name}' services.");
+
+            // 1️⃣ Local datetime (employee local time)
             var localStart = request.Day.ToDateTime(request.StartTime);
 
             // 2️⃣ Convert to UTC 
-            TimeZoneInfo barberTimeZone;
+            TimeZoneInfo employeeTz;
             try
             {
-                barberTimeZone = TimeZoneInfo.FindSystemTimeZoneById(barber.TimeZoneId);
+                employeeTz = TimeZoneInfo.FindSystemTimeZoneById(employee.TimeZoneId);
             }
             catch
             {
-                return BadRequest("Invalid barber timezone");
+                return BadRequest("Invalid employee timezone");
             }
 
-            var utcStart = TimeZoneInfo.ConvertTimeToUtc(localStart, barberTimeZone);
+            var utcStart = TimeZoneInfo.ConvertTimeToUtc(localStart, employeeTz);
             var utcEnd = utcStart.Add(service.DurationInMinutes);
 
             // 3️⃣ Past check (UTC)
             _logger.LogInformation("localStart: {localStart}, Kind: {kind}", localStart, localStart.Kind);
             _logger.LogInformation("utcStart: {utcStart}", utcStart);
             _logger.LogInformation("UtcNow: {utcNow}", DateTime.UtcNow);
-            _logger.LogInformation("BarberTZ: {tz}", barberTimeZone.Id);
+            _logger.LogInformation("EmployeeTZ: {tz}", employeeTz.Id);
 
             if (utcStart < DateTime.UtcNow)
                 return BadRequest("Cannot schedule appointment in the past");
 
-            // 4️⃣ Check barber schedule
-            var schedule = (await _barberScheduleService.GetAllBarberSchedules())
+            // 4️⃣ Check employee schedule
+            var schedule = (await _employeeScheduleService.GetAllEmployeeSchedules())
                 .FirstOrDefault(s =>
-                s.BarberId == barber.Id &&
+                s.EmployeeId == employee.Id &&
                     s.Day.Date == request.Day.ToDateTime(TimeOnly.MinValue).Date &&
                     !s.IsDayOff);
 
             if (schedule == null || !schedule.StartHour.HasValue || !schedule.EndHour.HasValue)
-                return BadRequest("Barber not working on this day");
+                return BadRequest("Employee not working on this day");
 
             var scheduleStartUtc = TimeZoneInfo.ConvertTimeToUtc(
                 request.Day.ToDateTime(TimeOnly.FromTimeSpan(schedule.StartHour.Value)),
-                barberTimeZone);
+                employeeTz);
 
             var scheduleEndUtc = TimeZoneInfo.ConvertTimeToUtc(
                 request.Day.ToDateTime(TimeOnly.FromTimeSpan(schedule.EndHour.Value)),
-                barberTimeZone);
+                employeeTz);
 
             if (utcStart < scheduleStartUtc || utcEnd > scheduleEndUtc)
                 return BadRequest("Appointment outside working hours");
 
             // 5️⃣ Overlap check (RESPECTS DURATION)
             var hasOverlap = _appointmentService.Query().Any(a =>
-                a.BarberId == barber.Id &&
+                a.EmployeeId == employee.Id &&
                 utcStart < a.EndTime &&
                 utcEnd > a.StartTime
             );
@@ -124,7 +137,7 @@ namespace BarberShopManagementSystem.API.Controllers
             var appointment = new Appointment
             {
                 CustomerId = customer.Id,
-                BarberId = barber.Id,
+                EmployeeId = employee.Id,
                 ServiceId = service.Id,
                 StartTime = utcStart,
                 EndTime = utcEnd,
@@ -164,12 +177,12 @@ namespace BarberShopManagementSystem.API.Controllers
             if (appointment.CustomerId != currentUser.Id && !User.IsInRole("Admin"))
                 return Forbid();
 
-            var barber = await _userManager.FindByNameAsync(request.BarberUsername);
-            if (barber == null || !await _userManager.IsInRoleAsync(barber, "Barber"))
-                return BadRequest("Invalid barber");
+            var employee = await _userManager.FindByNameAsync(request.EmployeeUsername);
+            if (employee == null || !await _userManager.IsInRoleAsync(employee, "Employee"))
+                return BadRequest("Invalid employee");
 
-            if (string.IsNullOrWhiteSpace(barber.TimeZoneId))
-                return BadRequest("Barber timezone not configured");
+            if (string.IsNullOrWhiteSpace(employee.TimeZoneId))
+                return BadRequest("Employee timezone not configured");
 
             var service = await _serviceService.GetServiceById(request.ServiceId);
             if (service == null)
@@ -177,24 +190,24 @@ namespace BarberShopManagementSystem.API.Controllers
 
             var localStart = request.Day.ToDateTime(request.StartTime);
 
-            TimeZoneInfo barberTimeZone;
+            TimeZoneInfo employeeTz;
             try
             {
-                barberTimeZone = TimeZoneInfo.FindSystemTimeZoneById(barber.TimeZoneId);
+                employeeTz = TimeZoneInfo.FindSystemTimeZoneById(employee.TimeZoneId);
             }
             catch
             {
-                return BadRequest("Invalid barber timezone");
+                return BadRequest("Invalid employee timezone");
             }
 
-            var utcStart = TimeZoneInfo.ConvertTimeToUtc(localStart, barberTimeZone);
+            var utcStart = TimeZoneInfo.ConvertTimeToUtc(localStart, employeeTz);
             var utcEnd = utcStart.Add(service.DurationInMinutes);
 
             if (utcStart < DateTime.UtcNow)
                 return BadRequest("Cannot schedule appointment in the past");
 
             var hasOverlap = _appointmentService.Query().Any(a =>
-                a.BarberId == barber.Id &&
+                a.EmployeeId == employee.Id &&
                 a.Id != id &&
                 utcStart < a.EndTime &&
                 utcEnd > a.StartTime
@@ -203,7 +216,7 @@ namespace BarberShopManagementSystem.API.Controllers
             if (hasOverlap)
                 return Conflict("Time slot already booked");
 
-            appointment.BarberId = barber.Id;
+            appointment.EmployeeId = employee.Id;
             appointment.ServiceId = service.Id;
             appointment.StartTime = utcStart;
             appointment.EndTime = utcEnd;
@@ -217,7 +230,7 @@ namespace BarberShopManagementSystem.API.Controllers
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(AppointmentDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [Authorize(Roles = "Admin, Customer, Barber")]
+        [Authorize(Roles = "Admin, Customer, Employee")]
         public async Task<ActionResult<AppointmentDTO>> GetAppointmentById([FromRoute] Guid id)
         {
             var appointment = await _appointmentService.GetAppointmentById(id);
@@ -235,7 +248,7 @@ namespace BarberShopManagementSystem.API.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [Authorize(Roles = "Admin, Customer, Barber")]
+        [Authorize(Roles = "Admin, Customer, Employee")]
         public async Task<IActionResult> DeleteAppointment([FromRoute] Guid id)
         {
             // 1. Validate ID
@@ -252,12 +265,12 @@ namespace BarberShopManagementSystem.API.Controllers
             if (currentUser == null)
                 return Unauthorized(new { Message = "User not authenticated" });
 
-            // Only the customer who owns it, the barber, or admin can delete
+            // Only the customer who owns it, the employee, or admin can delete
             var isOwner = appointment.CustomerId == currentUser.Id;
-            var isBarber = appointment.BarberId == currentUser.Id;
+            var isEmployee = appointment.EmployeeId == currentUser.Id;
             var isAdmin = User.IsInRole("Admin");
 
-            if (!isOwner && !isBarber && !isAdmin)
+            if (!isOwner && !isEmployee && !isAdmin)
                 return Forbid(); // 403 Forbidden
 
             // 4. Business rule: Cannot delete appointments that already started
@@ -298,29 +311,29 @@ namespace BarberShopManagementSystem.API.Controllers
         [HttpGet("availability")]
         [ProducesResponseType(typeof(List<TimeOnly>), StatusCodes.Status200OK)]
         public async Task<ActionResult<List<TimeOnly>>> GetAvailability(
-    [FromQuery] string barberId,
+    [FromQuery] string employeeId,
     [FromQuery] DateOnly date)
         {
-            var barber = await _userManager.FindByIdAsync(barberId);
-            if (barber == null || !await _userManager.IsInRoleAsync(barber, "Barber"))
-                return BadRequest("Invalid barber");
+            var employee = await _userManager.FindByIdAsync(employeeId);
+            if (employee == null || !await _userManager.IsInRoleAsync(employee, "Employee"))
+                return BadRequest("Invalid employee");
 
-            if (string.IsNullOrWhiteSpace(barber.TimeZoneId))
-                return BadRequest("Barber timezone not configured");
+            if (string.IsNullOrWhiteSpace(employee.TimeZoneId))
+                return BadRequest("Employee timezone not configured");
 
-            var schedule = (await _barberScheduleService.GetAllBarberSchedules())
+            var schedule = (await _employeeScheduleService.GetAllEmployeeSchedules())
                 .FirstOrDefault(s =>
-                    s.BarberId == barberId &&
+                    s.EmployeeId == employee.Id &&
                     s.Day.Date == date.ToDateTime(TimeOnly.MinValue).Date &&
                     !s.IsDayOff);
 
             if (schedule == null || !schedule.StartHour.HasValue || !schedule.EndHour.HasValue)
                 return Ok(new List<TimeOnly>());
 
-            TimeZoneInfo barberTz;
+            TimeZoneInfo employeeTz;
             try
             {
-                barberTz = TimeZoneInfo.FindSystemTimeZoneById(barber.TimeZoneId);
+                employeeTz = TimeZoneInfo.FindSystemTimeZoneById(employee.TimeZoneId);
             }
             catch
             {
@@ -338,12 +351,12 @@ namespace BarberShopManagementSystem.API.Controllers
 
             while (current.AddMinutes(slotStep) <= end)
             {
-                var utcStart = TimeZoneInfo.ConvertTimeToUtc(date.ToDateTime(current), barberTz);
+                var utcStart = TimeZoneInfo.ConvertTimeToUtc(date.ToDateTime(current), employeeTz);
                 var utcEnd = utcStart.AddMinutes(slotStep);
 
                 // slot is free if no appointment overlaps this 15-min window
                 var hasOverlap = _appointmentService.Query().Any(a =>
-                    a.BarberId == barberId &&
+                    a.EmployeeId == employee.Id &&
                     utcStart < a.EndTime &&
                     utcEnd > a.StartTime);
 

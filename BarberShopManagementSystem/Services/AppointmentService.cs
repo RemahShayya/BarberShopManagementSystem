@@ -39,9 +39,9 @@ namespace BarberShopManagementSystem.API.Services
             await _appointmentRepo.SaveAsync();
         }
 
-        public bool UpdateAppointment(Appointment appointment)
+        public async Task<bool> UpdateAppointment(Appointment appointment)
         {
-            return _appointmentRepo.Update(appointment);
+            return await _appointmentRepo.Update(appointment);
         }
 
         public IQueryable<Appointment> Query()

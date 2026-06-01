@@ -8,7 +8,7 @@ namespace BarberShopManagementSystem.API.Services.IServices
         Task<Review?> GetReviewById(Guid id);
         Task<Review> AddReview(Review review);
         void DeleteReview(Review review);
-        bool UpdateReview(Review review);
+        Task<bool> UpdateReview(Review review);
         Task SaveReview(Review review);
     }
 }

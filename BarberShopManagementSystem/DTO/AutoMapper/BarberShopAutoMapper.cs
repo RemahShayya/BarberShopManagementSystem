@@ -14,22 +14,22 @@ namespace BarberShopManagementSystem.API.DTO.BarberShopAutoMapper
                 .ForMember(dest => dest.JWT, opt => opt.Ignore())
                 .ForMember(dest => dest.Role, opt => opt.Ignore());
 
-            CreateMap<CreatedBarberScheduleRequest, BarberSchedule>()
+            CreateMap<CreatedEmployeeScheduleRequest, EmployeeSchedule>()
                 .ForMember(dest => dest.StartHour, opt => opt.MapFrom(src => src.StartHour))
                 .ForMember(dest => dest.EndHour, opt => opt.MapFrom(src => src.EndHour));
 
-            CreateMap<BarberSchedule, BarberScheduleDTO>()
+            CreateMap<EmployeeSchedule, EmployeeScheduleDTO>()
                 .ForMember(dest => dest.StartHour, opt => opt.MapFrom(src => src.StartHour))
                 .ForMember(dest => dest.EndHour, opt => opt.MapFrom(src => src.EndHour))
-                .ForMember(dest => dest.BarberName, opt => opt.MapFrom(src => src.Barber.FirstName + " " + src.Barber.LastName))
+                .ForMember(dest => dest.EmployeeName, opt => opt.MapFrom(src => src.Employee.FirstName + " " + src.Employee.LastName))
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
-                .ForMember(dest => dest.Username, opt => opt.MapFrom(src => src.Barber.UserName));
+                .ForMember(dest => dest.Username, opt => opt.MapFrom(src => src.Employee.UserName));
 
             CreateMap<CreatedAppointmentRequest, Appointment>();
 
             CreateMap<Appointment, AppointmentDTO>()
                 .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.Customer.FirstName + " " + src.Customer.LastName))
-                .ForMember(dest => dest.BarberName, opt => opt.MapFrom(src => src.Barber.FirstName + " " + src.Barber.LastName))
+                .ForMember(dest => dest.EmployeeName, opt => opt.MapFrom(src => src.Employee.FirstName + " " + src.Employee.LastName))
                 .ForMember(dest => dest.ServiceName, opt => opt.MapFrom(src => src.Service.Name))
                 .ForMember(dest => dest.ServicePrice, opt => opt.MapFrom(src => src.Service.Price))
                 .ForMember(dest => dest.AppointmentDuration, opt => opt.MapFrom(src => src.Service.DurationInMinutes))
@@ -38,14 +38,14 @@ namespace BarberShopManagementSystem.API.DTO.BarberShopAutoMapper
 
             CreateMap<CreatedServiceRequest, Service>()
                 .ForMember(dest => dest.DurationInMinutes, opt => opt.MapFrom(src => TimeSpan.FromMinutes(src.DurationInMinutes)));
-
             CreateMap<Service, ServiceDTO>()
-                .ForMember(dest => dest.Duration, opt => opt.MapFrom(src => src.DurationInMinutes));
+                .ForMember(dest => dest.Duration, opt => opt.MapFrom(src => src.DurationInMinutes))
+                .ForMember(dest => dest.ProfessionName, opt => opt.MapFrom(src => src.Profession.Name));
 
 
             CreateMap<Review, ReviewDTO>()
                 .ForMember(dest => dest.CustomerName, opt => opt.MapFrom(src => src.Customer.FirstName + " " + src.Customer.LastName))
-                .ForMember(dest => dest.BarberName, opt => opt.MapFrom(src => src.Barber.FirstName + " " + src.Barber.LastName));
+                .ForMember(dest => dest.EmployeeName, opt => opt.MapFrom(src => src.Employee.FirstName + " " + src.Employee.LastName));
 
             CreateMap<CreatedReviewRequest, Review>()
     .ForMember(dest => dest.AppointmentId, opt => opt.MapFrom(src => src.AppointmentId))
@@ -54,10 +54,30 @@ namespace BarberShopManagementSystem.API.DTO.BarberShopAutoMapper
     .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => DateTime.UtcNow))
     .ForMember(dest => dest.CustomerId, opt => opt.Ignore()) // Will be set from logged-in user
     .ForMember(dest => dest.Customer, opt => opt.Ignore())
-    .ForMember(dest => dest.BarberId, opt => opt.Ignore()) // Will be set from Appointment data
-    .ForMember(dest => dest.Barber, opt => opt.Ignore())
-    .ForMember(dest => dest.Appointment, opt => opt.Ignore())
+    .ForMember(dest => dest.EmployeeId, opt => opt.Ignore()) // Will be set from Appointment data
+    .ForMember(dest => dest.Employee, opt => opt.Ignore())
     .ForMember(dest => dest.Id, opt => opt.Ignore()); // Auto-gene
+
+            CreateMap<CreatedProfessionRequest, Profession>()
+                .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.professionName))
+                .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.professionDescription));
+
+            CreateMap<Profession, ProfessionDto>()
+                .ForMember(dest => dest.professionName, opt => opt.MapFrom(src => src.Name))
+                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.professionDescription, opt => opt.MapFrom(src => src.Description));
+
+            CreateMap<EmployeeProfession, EmployeeProfessionResponseDto>()
+                .ForMember(dest => dest.ProfessionId, opt => opt.MapFrom(src => src.Profession.Id))
+                .ForMember(dest => dest.ProfessionName, opt => opt.MapFrom(src => src.Profession.Name))
+                .ForMember(dest => dest.EmployeeUsername, opt => opt.MapFrom(src => src.Employee.UserName))
+                .ForMember(dest => dest.EmployeeId, opt => opt.MapFrom(src => src.Employee.Id));
+
+            CreateMap<CreatedEmployeeProfessionRequest, EmployeeProfession>()
+                .ForPath(dest => dest.Employee.UserName, opt => opt.MapFrom(src => src.Username))
+                .ForMember(dest => dest.ProfessionId, opt => opt.MapFrom(src => src.ProfessionId));
         }
+
+
     }
 }

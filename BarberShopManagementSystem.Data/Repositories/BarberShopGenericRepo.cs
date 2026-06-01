@@ -21,9 +21,14 @@ namespace BarberShopManagementSystem.Data.Repositories
             return _context.Set<T>().AsQueryable();
         }
 
-        public void Delete(object id)
+        public async Task<bool> Delete(object id)
         {
-            _context.Set<T>().Remove(_context.Set<T>().Find(id));
+            var entity = await _context.Set<T>().FindAsync(id);
+            if (entity == null)
+                return false;
+
+            _context.Set<T>().Remove(entity);
+            return true;
         }
 
         public async Task<bool> Exists(object id)
@@ -36,14 +41,29 @@ namespace BarberShopManagementSystem.Data.Repositories
             return await _context.Set<T>().ToListAsync();
         }
 
-        public async Task<IEnumerable<T>> GetAllWithIncludes(params System.Linq.Expressions.Expression<Func<T, object>>[] includes)
+        // overload 1 — includes only, satisfies the original interface signature
+        public async Task<IEnumerable<T>> GetAllWithIncludes(
+            params Expression<Func<T, object>>[] includes)
         {
             IQueryable<T> query = _context.Set<T>();
 
             foreach (var include in includes)
-            {
                 query = query.Include(include);
-            }
+
+            return await query.ToListAsync();
+        }
+
+        public async Task<IEnumerable<T>> GetAllWithIncludes(
+            Expression<Func<T, bool>>? filter,
+            params Expression<Func<T, object>>[] includes)
+        {
+            IQueryable<T> query = _context.Set<T>();
+
+            if (filter is not null)
+                query = query.Where(filter);
+
+            foreach (var include in includes)
+                query = query.Include(include);
 
             return await query.ToListAsync();
         }
@@ -64,7 +84,7 @@ namespace BarberShopManagementSystem.Data.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public bool Update(T entity)
+        public async Task<bool> Update(T entity)
         {
             _context.Set<T>().Update(entity);
             return true;

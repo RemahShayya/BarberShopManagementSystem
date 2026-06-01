@@ -5,22 +5,22 @@ namespace BarberShopManagementSystem.API.Services
 {
     public class ScheduleCleanupService
     {
-        private readonly IBarberScheduleService _scheduleService;
+        private readonly IEmployeeScheduleService _scheduleService;
 
-        public ScheduleCleanupService(IBarberScheduleService scheduleService)
+        public ScheduleCleanupService(IEmployeeScheduleService scheduleService)
         {
             _scheduleService = scheduleService;
         }
         public async Task DeleteOldServices()
         {
-            var schedules = await _scheduleService.GetAllBarberSchedules();
+            var schedules = await _scheduleService.GetAllEmployeeSchedules();
             var oldSchedules = schedules
                 .Where(a => a.Day < DateTime.UtcNow.Date)
                 .ToList();
             foreach (var schedule in oldSchedules)
             {
-                _scheduleService.DeleteBarberSchedule(schedule);
-                await _scheduleService.SaveBarberSchedule();
+                _scheduleService.DeleteEmployeeSchedule(schedule);
+                await _scheduleService.SaveEmployeeSchedule();
             }
         }
     }

@@ -13,8 +13,8 @@ namespace BarberShopManagementSystem.Data.Entities
         public string? TimeZoneId { get; set; }
 
         public ICollection<Appointment> CustomerAppointments { get; set; } = new List<Appointment>();
-        public ICollection<Appointment> BarberAppointments { get; set; } = new List<Appointment>();
+        public ICollection<Appointment> EmployeeAppointments { get; set; } = new List<Appointment>();
         public ICollection<Review> Reviews { get; set; } = new List<Review>();
-        public ICollection<BarberSchedule> BarberSchedules { get; set; } = new List<BarberSchedule>();
+        public ICollection<EmployeeSchedule> EmployeeSchedules { get; set; } = new List<EmployeeSchedule>();
     }
 }

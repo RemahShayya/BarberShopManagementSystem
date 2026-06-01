@@ -4,6 +4,7 @@ using BarberShopManagementSystem.Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BarberShopManagementSystem.Data.Migrations
 {
     [DbContext(typeof(BarberShopContext))]
-    partial class BarberShopContextModelSnapshot : ModelSnapshot
+    [Migration("20260524102707_Edit Review Entity")]
+    partial class EditReviewEntity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -28,14 +31,14 @@ namespace BarberShopManagementSystem.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("BarberId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("CustomerId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("EmployeeId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
@@ -50,9 +53,9 @@ namespace BarberShopManagementSystem.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CustomerId");
+                    b.HasIndex("BarberId");
 
-                    b.HasIndex("EmployeeId");
+                    b.HasIndex("CustomerId");
 
                     b.HasIndex("ServiceId");
 
@@ -68,14 +71,14 @@ namespace BarberShopManagementSystem.Data.Migrations
                     b.Property<DateTime>("ArchivedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("BarberId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("CustomerId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("EmployeeId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
@@ -100,9 +103,9 @@ namespace BarberShopManagementSystem.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CustomerId");
+                    b.HasIndex("BarberId");
 
-                    b.HasIndex("EmployeeId");
+                    b.HasIndex("CustomerId");
 
                     b.HasIndex("ReviewId");
 
@@ -111,40 +114,18 @@ namespace BarberShopManagementSystem.Data.Migrations
                     b.ToTable("ArchivedAppointments");
                 });
 
-            modelBuilder.Entity("BarberShopManagementSystem.Data.Entities.EmployeeProfession", b =>
+            modelBuilder.Entity("BarberShopManagementSystem.Data.Entities.BarberSchedule", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("EmployeeId")
+                    b.Property<string>("BarberId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
-
-                    b.Property<Guid>("ProfessionId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EmployeeId");
-
-                    b.HasIndex("ProfessionId");
-
-                    b.ToTable("EmployeeProfessions");
-                });
-
-            modelBuilder.Entity("BarberShopManagementSystem.Data.Entities.EmployeeSchedule", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("Day")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("EmployeeId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
 
                     b.Property<TimeSpan?>("EndHour")
                         .HasColumnType("time");
@@ -160,30 +141,11 @@ namespace BarberShopManagementSystem.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("EmployeeId");
+                    b.HasIndex("BarberId");
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("EmployeeSchedules");
-                });
-
-            modelBuilder.Entity("BarberShopManagementSystem.Data.Entities.Profession", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Professions");
+                    b.ToTable("BarberSchedules");
                 });
 
             modelBuilder.Entity("BarberShopManagementSystem.Data.Entities.Review", b =>
@@ -194,6 +156,10 @@ namespace BarberShopManagementSystem.Data.Migrations
 
                     b.Property<Guid>("AppointmentId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("BarberId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Comment")
                         .ValueGeneratedOnAdd()
@@ -210,10 +176,6 @@ namespace BarberShopManagementSystem.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("EmployeeId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
                     b.Property<int>("Rating")
                         .HasColumnType("int");
 
@@ -225,9 +187,9 @@ namespace BarberShopManagementSystem.Data.Migrations
                     b.HasIndex("AppointmentId")
                         .IsUnique();
 
-                    b.HasIndex("CustomerId");
+                    b.HasIndex("BarberId");
 
-                    b.HasIndex("EmployeeId");
+                    b.HasIndex("CustomerId");
 
                     b.HasIndex("UserId");
 
@@ -285,9 +247,9 @@ namespace BarberShopManagementSystem.Data.Migrations
                         {
                             Id = "e7c9d2a5-1b3f-4f4b-9b3a-2a1e3f5b6d77",
                             ConcurrencyStamp = "33333333-3333-3333-3333-333333333333",
-                            Description = "Employee role with limited permissions",
-                            Name = "Employee",
-                            NormalizedName = "EMPLOYEE"
+                            Description = "Barber role with permission to manage appointments",
+                            Name = "Barber",
+                            NormalizedName = "BARBER"
                         });
                 });
 
@@ -313,12 +275,7 @@ namespace BarberShopManagementSystem.Data.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<Guid>("ProfessionId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
-
-                    b.HasIndex("ProfessionId");
 
                     b.ToTable("Services");
                 });
@@ -510,15 +467,15 @@ namespace BarberShopManagementSystem.Data.Migrations
 
             modelBuilder.Entity("BarberShopManagementSystem.Data.Entities.Appointment", b =>
                 {
-                    b.HasOne("BarberShopManagementSystem.Data.Entities.User", "Customer")
-                        .WithMany("CustomerAppointments")
-                        .HasForeignKey("CustomerId")
+                    b.HasOne("BarberShopManagementSystem.Data.Entities.User", "Barber")
+                        .WithMany("BarberAppointments")
+                        .HasForeignKey("BarberId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("BarberShopManagementSystem.Data.Entities.User", "Employee")
-                        .WithMany("EmployeeAppointments")
-                        .HasForeignKey("EmployeeId")
+                    b.HasOne("BarberShopManagementSystem.Data.Entities.User", "Customer")
+                        .WithMany("CustomerAppointments")
+                        .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -528,24 +485,24 @@ namespace BarberShopManagementSystem.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Customer");
+                    b.Navigation("Barber");
 
-                    b.Navigation("Employee");
+                    b.Navigation("Customer");
 
                     b.Navigation("Service");
                 });
 
             modelBuilder.Entity("BarberShopManagementSystem.Data.Entities.ArchivedAppointment", b =>
                 {
-                    b.HasOne("BarberShopManagementSystem.Data.Entities.User", "Customer")
+                    b.HasOne("BarberShopManagementSystem.Data.Entities.User", "Barber")
                         .WithMany()
-                        .HasForeignKey("CustomerId")
+                        .HasForeignKey("BarberId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.HasOne("BarberShopManagementSystem.Data.Entities.User", "Employee")
+                    b.HasOne("BarberShopManagementSystem.Data.Entities.User", "Customer")
                         .WithMany()
-                        .HasForeignKey("EmployeeId")
+                        .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
@@ -559,60 +516,41 @@ namespace BarberShopManagementSystem.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Customer");
+                    b.Navigation("Barber");
 
-                    b.Navigation("Employee");
+                    b.Navigation("Customer");
 
                     b.Navigation("Review");
 
                     b.Navigation("Service");
                 });
 
-            modelBuilder.Entity("BarberShopManagementSystem.Data.Entities.EmployeeProfession", b =>
+            modelBuilder.Entity("BarberShopManagementSystem.Data.Entities.BarberSchedule", b =>
                 {
-                    b.HasOne("BarberShopManagementSystem.Data.Entities.User", "Employee")
+                    b.HasOne("BarberShopManagementSystem.Data.Entities.User", "Barber")
                         .WithMany()
-                        .HasForeignKey("EmployeeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("BarberShopManagementSystem.Data.Entities.Profession", "Profession")
-                        .WithMany("EmployeeProfessions")
-                        .HasForeignKey("ProfessionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Employee");
-
-                    b.Navigation("Profession");
-                });
-
-            modelBuilder.Entity("BarberShopManagementSystem.Data.Entities.EmployeeSchedule", b =>
-                {
-                    b.HasOne("BarberShopManagementSystem.Data.Entities.User", "Employee")
-                        .WithMany()
-                        .HasForeignKey("EmployeeId")
+                        .HasForeignKey("BarberId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("BarberShopManagementSystem.Data.Entities.User", null)
-                        .WithMany("EmployeeSchedules")
+                        .WithMany("BarberSchedules")
                         .HasForeignKey("UserId");
 
-                    b.Navigation("Employee");
+                    b.Navigation("Barber");
                 });
 
             modelBuilder.Entity("BarberShopManagementSystem.Data.Entities.Review", b =>
                 {
-                    b.HasOne("BarberShopManagementSystem.Data.Entities.User", "Customer")
+                    b.HasOne("BarberShopManagementSystem.Data.Entities.User", "Barber")
                         .WithMany()
-                        .HasForeignKey("CustomerId")
+                        .HasForeignKey("BarberId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.HasOne("BarberShopManagementSystem.Data.Entities.User", "Employee")
+                    b.HasOne("BarberShopManagementSystem.Data.Entities.User", "Customer")
                         .WithMany()
-                        .HasForeignKey("EmployeeId")
+                        .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
@@ -620,20 +558,9 @@ namespace BarberShopManagementSystem.Data.Migrations
                         .WithMany("Reviews")
                         .HasForeignKey("UserId");
 
+                    b.Navigation("Barber");
+
                     b.Navigation("Customer");
-
-                    b.Navigation("Employee");
-                });
-
-            modelBuilder.Entity("BarberShopManagementSystem.Data.Entities.Service", b =>
-                {
-                    b.HasOne("BarberShopManagementSystem.Data.Entities.Profession", "Profession")
-                        .WithMany("Services")
-                        .HasForeignKey("ProfessionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Profession");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -687,13 +614,6 @@ namespace BarberShopManagementSystem.Data.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("BarberShopManagementSystem.Data.Entities.Profession", b =>
-                {
-                    b.Navigation("EmployeeProfessions");
-
-                    b.Navigation("Services");
-                });
-
             modelBuilder.Entity("BarberShopManagementSystem.Data.Entities.Service", b =>
                 {
                     b.Navigation("Appointments");
@@ -701,11 +621,11 @@ namespace BarberShopManagementSystem.Data.Migrations
 
             modelBuilder.Entity("BarberShopManagementSystem.Data.Entities.User", b =>
                 {
+                    b.Navigation("BarberAppointments");
+
+                    b.Navigation("BarberSchedules");
+
                     b.Navigation("CustomerAppointments");
-
-                    b.Navigation("EmployeeAppointments");
-
-                    b.Navigation("EmployeeSchedules");
 
                     b.Navigation("Reviews");
                 });

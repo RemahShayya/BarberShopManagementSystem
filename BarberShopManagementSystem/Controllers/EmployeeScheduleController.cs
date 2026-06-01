@@ -14,42 +14,42 @@ namespace BarberShopManagementSystem.API.Controllers
     [ApiController]
     public class EmployeeScheduleController : ControllerBase
     {
-        private readonly IBarberScheduleService _barberScheduleService;
+        private readonly IEmployeeScheduleService _employeeScheduleService;
         private readonly IMapper _mapper;
         private readonly UserManager<User> _userManager;
 
         public EmployeeScheduleController(
-            IBarberScheduleService barberScheduleService,
+            IEmployeeScheduleService employeeScheduleService,
             IMapper mapper,
             UserManager<User> userManager)
         {
-            _barberScheduleService = barberScheduleService;
+            _employeeScheduleService = employeeScheduleService;
             _mapper = mapper;
             _userManager = userManager;
         }
 
         // GET: api/BarberSchedule
         [HttpGet]
-        [Authorize(Roles = "Barber, Admin, Customer")]
-        public async Task<ActionResult<IEnumerable<BarberScheduleDTO>>> GetAll()
+        [Authorize(Roles = "Employee, Admin, Customer")]
+        public async Task<ActionResult<IEnumerable<EmployeeScheduleDTO>>> GetAll()
         {
-            var schedules = await _barberScheduleService.GetAllBarberSchedules();
-            var schedulesDTO = _mapper.Map<IEnumerable<BarberScheduleDTO>>(schedules);
+            var schedules = await _employeeScheduleService.GetAllEmployeeSchedules();
+            var schedulesDTO = _mapper.Map<IEnumerable<EmployeeScheduleDTO>>(schedules);
             return Ok(schedulesDTO);
         }
 
         [HttpGet("{username}/{day}")]
-        [Authorize(Roles = "Barber, Admin, Customer")]
-        public async Task<ActionResult<BarberScheduleDTO>> GetByBarberDay(string username, DateTime day)
+        [Authorize(Roles = "Employee, Admin, Customer")]
+        public async Task<ActionResult<EmployeeScheduleDTO>> GetByEmployeeDay(string username, DateTime day)
         {
-            var schedule = await _barberScheduleService
-                .GetAllBarberSchedules();
+            var schedule = await _employeeScheduleService
+                .GetAllEmployeeSchedules();
 
-            var result = schedule.FirstOrDefault(s => s.Barber.UserName == username && s.Day.Date == day.Date);
+            var result = schedule.FirstOrDefault(s => s.Employee.UserName == username && s.Day.Date == day.Date);
 
             if (result == null)
                 return NotFound();
-            var scheduleDTO = _mapper.Map<BarberScheduleDTO>(result);
+            var scheduleDTO = _mapper.Map<EmployeeScheduleDTO>(result);
 
             return Ok(scheduleDTO);
         }
@@ -57,32 +57,32 @@ namespace BarberShopManagementSystem.API.Controllers
 
         [HttpPost("Add_Schedule")]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<IEnumerable<BarberScheduleDTO>>> CreateSchedule(
-            [FromBody] List<CreatedBarberScheduleRequest> schedules)
+        public async Task<ActionResult<IEnumerable<EmployeeScheduleDTO>>> CreateSchedule(
+            [FromBody] List<CreatedEmployeeScheduleRequest> schedules)
         {
             if (schedules == null || !schedules.Any())
                 return BadRequest("No schedules provided.");
 
-            var createdSchedules = new List<BarberSchedule>();
-            var existingSchedules = (await _barberScheduleService.GetAllBarberSchedules()).ToList();
+            var createdSchedules = new List<EmployeeSchedule>();
+            var existingSchedules = (await _employeeScheduleService.GetAllEmployeeSchedules()).ToList();
 
             foreach (var request in schedules)
             {
-                var barber = await _userManager.FindByNameAsync(request.Username);
-                if (barber == null)
-                    return BadRequest($"Barber '{request.Username}' not found");
+                var employee = await _userManager.FindByNameAsync(request.Username);
+                if (employee == null)
+                    return BadRequest($"Employee '{request.Username}' not found");
 
-                if (!await _userManager.IsInRoleAsync(barber, "Barber"))
-                    return BadRequest($"User '{request.Username}' is not a barber");
+                if (!await _userManager.IsInRoleAsync(employee, "Employee"))
+                    return BadRequest($"User '{request.Username}' is not an employee");
+                    
+                if (string.IsNullOrWhiteSpace(employee.TimeZoneId))
+                    return BadRequest("Employee timezone not configured");
 
-                if (string.IsNullOrWhiteSpace(barber.TimeZoneId))
-                    return BadRequest("Barber timezone not configured");
+                // ✅ Use employee timezone instead of server time
+                var employeeTimeZone = TimeZoneInfo.FindSystemTimeZoneById(employee.TimeZoneId);
+                var employeeNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, employeeTimeZone);
 
-                // ✅ Use barber timezone instead of server time
-                var barberTimeZone = TimeZoneInfo.FindSystemTimeZoneById(barber.TimeZoneId);
-                var barberNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, barberTimeZone);
-
-                if (request.Day.Date < barberNow.Date)
+                if (request.Day.Date < employeeNow.Date)
                     return BadRequest($"Cannot create schedule for a past date: {request.Day:yyyy-MM-dd}");
 
                 if (!request.IsDayOff)
@@ -101,33 +101,33 @@ namespace BarberShopManagementSystem.API.Controllers
 
                 // ✅ Duplicate check (date only)
                 if (existingSchedules.Any(s =>
-                    s.BarberId == barber.Id &&
+                    s.EmployeeId == employee.Id &&
                     s.Day.Date == request.Day.Date))
                 {
                     return BadRequest($"Schedule already exists for {request.Day:yyyy-MM-dd}");
                 }
 
-                var entity = _mapper.Map<BarberSchedule>(request);
-                entity.BarberId = barber.Id;
+                var entity = _mapper.Map<EmployeeSchedule>(request);
+                entity.EmployeeId = employee.Id;
 
-                var created = await _barberScheduleService.AddBarberSchedule(entity);
+                var created = await _employeeScheduleService.AddEmployeeSchedule(entity);
                 createdSchedules.Add(created);
                 existingSchedules.Add(created);
             }
 
             foreach (var s in createdSchedules)
-                await _barberScheduleService.SaveBarberSchedule();
+                await _employeeScheduleService.SaveEmployeeSchedule();
 
-            var result = _mapper.Map<IEnumerable<BarberScheduleDTO>>(createdSchedules);
+            var result = _mapper.Map<IEnumerable<EmployeeScheduleDTO>>(createdSchedules);
             return Ok(result);
         }
 
         [HttpPut]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult> Update([FromBody] CreatedBarberScheduleRequest request)
+        public async Task<ActionResult> Update([FromBody] CreatedEmployeeScheduleRequest request)
         {
-            var existing = (await _barberScheduleService.GetAllBarberSchedules())
-                .FirstOrDefault(s => s.Barber.UserName == request.Username && s.Day.Date == request.Day.Date);
+            var existing = (await _employeeScheduleService.GetAllEmployeeSchedules())
+                .FirstOrDefault(s => s.Employee.UserName == request.Username && s.Day.Date == request.Day.Date);
 
             if (existing == null)
                 return NotFound();
@@ -153,9 +153,9 @@ namespace BarberShopManagementSystem.API.Controllers
 
             _mapper.Map(request, existing);
 
-            _barberScheduleService.UpdateBarberSchedule(existing);
+            _employeeScheduleService.UpdateEmployeeSchedule(existing);
 
-            await _barberScheduleService.SaveBarberSchedule();
+            await _employeeScheduleService.SaveEmployeeSchedule();
 
             return Ok();
         }
@@ -166,15 +166,15 @@ namespace BarberShopManagementSystem.API.Controllers
 
         public async Task<ActionResult> DeleteSchedule(string username, DateTime day)
         {
-            var existing = (await _barberScheduleService.GetAllBarberSchedules())
-                .FirstOrDefault(s => s.Barber.UserName == username && s.Day.Date == day.Date);
+            var existing = (await _employeeScheduleService.GetAllEmployeeSchedules())
+                .FirstOrDefault(s => s.Employee.UserName == username && s.Day.Date == day.Date);
 
             if (existing == null)
                 return NotFound();
 
-            _barberScheduleService.DeleteBarberSchedule(existing);
+            _employeeScheduleService.DeleteEmployeeSchedule(existing);
 
-            await _barberScheduleService.SaveBarberSchedule();
+            await _employeeScheduleService.SaveEmployeeSchedule();
 
             return NoContent();
         }

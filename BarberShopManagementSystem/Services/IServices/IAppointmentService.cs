@@ -10,7 +10,7 @@ namespace BarberShopManagementSystem.API.Services.IServices
         Task<Appointment?> GetAppointmentById(Guid id);
         Task<Appointment> AddAppointment(Appointment appointment);
         void DeleteAppointment(Guid Id);
-        bool UpdateAppointment(Appointment appointment);
+        Task<bool> UpdateAppointment(Appointment appointment);
         Task SaveAppointment();
     }
 }

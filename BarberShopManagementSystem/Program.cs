@@ -42,7 +42,10 @@ try
     builder.Services.AddScoped(typeof(BarberShopGenericRepo<>));
     builder.Services.AddScoped<IServicesService, ServicesService>();
     builder.Services.AddScoped<IUserService, UserService>();
-    builder.Services.AddScoped<IBarberScheduleService, BarberScheduleService>();
+    builder.Services.AddScoped<IEmployeeProfessionService, EmployeeProfessionService>();
+    builder.Services.AddScoped<IProfessionService, ProfessionService>();
+    builder.Services.AddScoped<IEmployeeScheduleService, EmployeeScheduleService>();
+    builder.Services.AddScoped<IEmployeeScheduleService, EmployeeScheduleService>();
     builder.Services.AddScoped<IAppointmentService, AppointmentService>();
     builder.Services.AddScoped<IArchivedAppointmentService, ArchivedAppointmentService>();
     builder.Services.AddScoped<IReviewService, ReviewService>();

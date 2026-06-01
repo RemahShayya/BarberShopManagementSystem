@@ -6,10 +6,10 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace BarberShopManagementSystem.Data.Entities
 {
-    public class BarberSchedule : ShopBaseEntity
+    public class EmployeeSchedule : ShopBaseEntity
     {
-        public User Barber { get; set; }
-        public string BarberId { get; set; }
+        public User Employee { get; set; }
+        public string EmployeeId { get; set; }
         public DateTime Day { get; set; }
         public TimeSpan? StartHour { get; set; }
         public TimeSpan? EndHour { get; set; }

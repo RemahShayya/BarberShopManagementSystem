@@ -20,7 +20,7 @@ namespace BarberShopManagementSystem.API.Services
         }
         public async Task<IEnumerable<ArchivedAppointment>> GetAllArchivedAppointmentsWithIncludes()
         {
-            return await _repository.GetAllWithIncludes(a => a.Barber, a => a.Customer);
+            return await _repository.GetAllWithIncludes(a => a.Employee, a => a.Customer);
         }
 
         public async Task<ArchivedAppointment> AddArchivedAppointment(ArchivedAppointment appointment)
@@ -35,7 +35,7 @@ namespace BarberShopManagementSystem.API.Services
         }
         public void DeleteArchivedAppointment(ArchivedAppointment appointment)
         {
-            _repository.Delete(appointment);
+            _repository.Delete(appointment.Id);
         }
 
         public async Task<ArchivedAppointment?> GetByToken(string token)

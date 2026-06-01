@@ -60,7 +60,7 @@ namespace BarberShopManagementSystem.API.Controllers
         }
 
         [HttpGet("get_all_customers")]
-        [Authorize(Roles = "Admin, Customer")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<IEnumerable<UserDTO>>> GetAllEmployees(string? search, [FromQuery] int pageNumber, [FromQuery] int pageSize)
         {
             var customer = await userManager.GetUsersInRoleAsync("Customer");
@@ -84,7 +84,6 @@ namespace BarberShopManagementSystem.API.Controllers
         }
 
         [HttpPost("Login")]
-        [Authorize(Roles = "Customer")]
         public async Task<ActionResult<UserDTO>> login(CreatedLoginRequest request)
         {
             var user = await userManager.FindByNameAsync(request.Username);
@@ -151,7 +150,6 @@ namespace BarberShopManagementSystem.API.Controllers
 
 
         [HttpPut("ConfirmEmail")]
-
         public async Task<IActionResult> ConfirmEmail(ConfirmEmailDTO model)
         {
             var user = await userManager.FindByEmailAsync(model.Email);
@@ -252,6 +250,39 @@ namespace BarberShopManagementSystem.API.Controllers
             {
                 return BadRequest("Password could not be reset!");
             }
+        }
+
+
+        [Authorize(Roles = "Customer")]
+        [HttpPost("ChangePassword")]
+        public async Task<IActionResult> ChangePassword(CreateChangePassword request)
+        {
+            if (request.NewPassword != request.ConfirmPassword)
+                return BadRequest("Passwords do not match.");
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            var user = await userManager.FindByIdAsync(userId);
+
+            if (user == null)
+                return NotFound("Customer not found.");
+
+            var result = await userManager.ChangePasswordAsync(
+                user,
+                request.CurrentPassword,
+                request.NewPassword);
+
+            if (!result.Succeeded)
+                return BadRequest(result.Errors);
+
+            return Ok(new
+            {
+                title = "Password Changed",
+                message = "Your password has been changed successfully."
+            });
         }
 
         #region
